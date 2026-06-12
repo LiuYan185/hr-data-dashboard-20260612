@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集团人力数据看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:#1e293b;line-height:1.5}
+
+/* ===== TOP BAR ===== */
+.top-bar{
+  background:linear-gradient(135deg,#0a1628,#0e1d49);
+  color:#e2e8f0;padding:18px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(0,0,0,.15);
+}
+
+.top-bar h1{font-size:24px;font-weight:800;color:#f8fafc;letter-spacing:1px}
+.top-bar .meta{font-size:12px;color:#94a3b8;display:flex;gap:20px;align-items:center}
+.top-bar .meta span{color:#94a3b8}
+.top-bar .meta strong{color:#e2e8f0;font-weight:600}
+
+/* ===== CALIBER BUTTON — small & subtle ===== */
+.caliber-btn{
+  background:none;color:#94a3b8;border:none;
+  font-size:11px;font-weight:500;cursor:pointer;padding:2px 0;
+  transition:color .15s;
+}
+.caliber-btn:hover{color:#e2e8f0}
+
+/* ===== MAIN CONTAINER ===== */
+.main{max-width:1320px;margin:0 auto;padding:16px 28px 28px}
+
+/* ===== HERO BANNER ===== */
+.hero{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.hero-card{
+  background:#fff;border-radius:12px;padding:14px 16px;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+  position:relative;overflow:hidden;
+  transition:transform .15s,box-shadow .15s;
+}
+.hero-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.hero-card .card-tag{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;color:#64748b}
+.hero-card .card-val{font-size:34px;font-weight:800;line-height:1.1;margin-bottom:2px}
+.hero-card .card-sub{font-size:11px;color:#64748b;line-height:1.5}
+.hero-card .card-sub strong{font-weight:700}
+.hero-card .card-trend{font-size:11px;margin-top:4px;font-weight:600;display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px}
+.hero-card .card-trend.up{background:#ecfdf5;color:#059669}
+.hero-card .card-trend.down{background:#fef2f2;color:#dc2626}
+.hero-card .card-trend.warn{background:#fffbeb;color:#d97706}
+.hero-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:12px 0 0 12px}
+.hero-card.c-blue::after{background:#3f589a}
+.hero-card.c-green::after{background:#059669}
+.hero-card.c-orange::after{background:#ee7623}
+.hero-card.c-red::after{background:#dc2626}
+.hero-card .spark-mini{display:flex;align-items:flex-end;gap:2px;height:24px;margin-top:4px}
+.hero-card .spark-mini div{flex:1;border-radius:2px 2px 0 0;min-width:3px}
+
+/* ===== STATS STRIP ===== */
+.stats-strip{
+  background:#fff;display:grid;grid-template-columns:repeat(6,1fr);
+  border-bottom:1px solid #e2e8f0;box-shadow:0 2px 8px rgba(0,0,0,.04);
+}
+.stat-item{text-align:center;padding:18px 8px 14px;border-right:1px solid #f1f5f9;transition:background .15s}
+.stat-item:last-child{border-right:none}
+.stat-item:hover{background:#f8fafc}
+.stat-item .stat-label{font-size:12px;color:#64748b;margin-bottom:6px;font-weight:500}
+.stat-item .stat-val{font-size:28px;font-weight:900;line-height:1;color:#0e1d49}
+.stat-item .stat-sub{font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.4}
+.stat-item .stat-val.blue{color:#3f589a}
+.stat-item .stat-val.orange{color:#ee7623}
+.stat-item .stat-val.green{color:#059669}
+.stat-item .stat-val.red{color:#dc2626}
+
+/* ===== MONTHLY MINI BARS ===== */
+.monthly-mini{display:flex;align-items:flex-end;gap:3px;height:40px;margin-top:6px}
+.monthly-mini .m-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px}
+.monthly-mini .m-bar{width:100%;border-radius:3px 3px 0 0;min-height:3px;position:relative}
+.monthly-mini .m-bar .m-num{position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;white-space:nowrap}
+.monthly-mini .m-label{font-size:8px;color:#94a3b8;transform:scale(0.85)}
+
+/* ===== SECTION HEADER ===== */
+.section-hd{display:flex;align-items:center;gap:8px;margin:18px 0 10px}
+.section-hd h2{font-size:15px;font-weight:700;color:#0e1d49;letter-spacing:0.3px}
+.section-hd .divider{flex:1;height:1px;background:#e2e8f0}
+.section-hd .badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;background:#fef2f2;color:#dc2626;white-space:nowrap}
+
+/* ===== WARNING CARDS ===== */
+.warn-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.warn-card{
+  background:#fff;border-radius:10px;padding:12px 14px;
+  border-left:4px solid #dc2626;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.warn-card.yellow{border-left-color:#eab308}
+.warn-card.orange{border-left-color:#ee7623}
+.warn-card .warn-title{font-size:13px;font-weight:700;color:#0e1d49;margin-bottom:6px}
+.warn-card .warn-body{font-size:12px;color:#475569;line-height:1.6}
+.warn-card .warn-body strong{color:#dc2626;font-weight:700}
+.warn-card.yellow .warn-body strong{color:#b45309}
+.warn-card.orange .warn-body strong{color:#ea580c}
+
+/* ===== BU HEALTH TABLE ===== */
+.health-table-wrap{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden;margin-bottom:16px}
+.health-table{width:100%;border-collapse:collapse;font-size:14px}
+.health-table thead th{background:#0e1d49;color:#e2e8f0;font-weight:700;font-size:13px;padding:11px 12px;text-align:center;white-space:nowrap;letter-spacing:0.3px}
+.health-table thead th:first-child{text-align:left;padding-left:18px}
+.health-table tbody td{padding:11px 12px;text-align:center;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums;font-weight:600}
+.health-table tbody td:first-child{text-align:left;padding-left:18px;font-weight:700;color:#0e1d49}
+.health-table tbody tr:hover{background:#f8fafc}
+.health-table .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.health-table .dot.green{background:#059669}
+.health-table .dot.yellow{background:#eab308}
+.health-table .dot.red{background:#dc2626}
+.health-table td.fill-high{color:#059669}
+.health-table td.fill-mid{color:#1e293b}
+.health-table td.fill-low{color:#dc2626;font-weight:800}
+.health-table td.rate-high{color:#059669}
+.health-table td.rate-mid{color:#1e293b}
+.health-table td.rate-low{color:#dc2626}
+.health-table td.neg{color:#dc2626}
+.health-table .tag{padding:3px 10px;border-radius:4px;font-size:12px;font-weight:800;white-space:nowrap}
+.health-table .tag.good{background:#ecfdf5;color:#059669}
+.health-table .tag.warn{background:#fffbeb;color:#b45309}
+.health-table .tag.bad{background:#fef2f2;color:#dc2626}
+
+/* ===== CHARTS SECTION ===== */
+.charts-row{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px}
+.charts-row.equal{grid-template-columns:1fr 1fr}
+.chart-card{background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.chart-card h3{font-size:14px;font-weight:700;color:#0e1d49;margin-bottom:10px}
+.chart-card canvas{max-height:280px}
+.chart-card.full-width{grid-column:1/-1}
+
+/* ===== LEVEL TABLE ===== */
+.level-table{width:100%;border-collapse:collapse;font-size:12px}
+.level-table thead th{background:#f8fafc;color:#64748b;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px;text-align:center;border-bottom:2px solid #e2e8f0}
+.level-table thead th:first-child{text-align:left}
+.level-table tbody td{padding:9px 10px;text-align:center;border-bottom:1px solid #f1f5f9;font-weight:600;font-variant-numeric:tabular-nums}
+.level-table tbody td:first-child{text-align:left;font-weight:700;color:#0e1d49}
+.level-table .bar-cell{min-width:80px}
+.level-table .bar-bg{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden}
+.level-table .bar-fg{height:100%;border-radius:3px}
+.level-table .bar-fg.good{background:#059669}
+.level-table .bar-fg.warn{background:#eab308}
+.level-table .bar-fg.bad{background:#dc2626}
+
+/* ===== HIGH LEVEL TABLE ===== */
+.high-level-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.mini-table{width:100%;border-collapse:collapse;font-size:11px}
+.mini-table thead th{background:#f8fafc;color:#64748b;font-weight:600;font-size:10px;padding:7px 8px;text-align:left;border-bottom:2px solid #e2e8f0}
+.mini-table tbody td{padding:7px 8px;border-bottom:1px solid #f1f5f9}
+.mini-table .name-cell{font-weight:700;color:#0e1d49}
+.mini-table .pos-cell{color:#475569;font-size:10px}
+
+/* ===== FOOTER ===== */
+.footer{text-align:center;padding:20px 0 14px;color:#94a3b8;font-size:11px;border-top:1px solid #e2e8f0;margin-top:18px}
+
+/* ===== CALIBER MODAL ===== */
+.caliber-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center}
+.caliber-overlay.show{display:flex}
+.caliber-modal{background:#fff;border-radius:14px;width:720px;max-width:92vw;max-height:82vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:28px 32px}
+.caliber-modal h2{font-size:18px;font-weight:700;color:#0e1d49;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #e2e8f0}
+.caliber-modal .cal-section{margin-bottom:18px}
+.caliber-modal .cal-section h3{font-size:14px;font-weight:700;color:#3f589a;margin-bottom:6px}
+.caliber-modal .cal-section p{font-size:13px;color:#475569;line-height:1.7;margin:0}
+.caliber-modal .cal-section .highlight{background:#fef3c7;padding:2px 6px;border-radius:3px;font-weight:600;color:#92400e}
+.caliber-modal .cal-close{float:right;background:none;border:none;font-size:24px;color:#94a3b8;cursor:pointer;line-height:1;padding:0;margin-top:-4px}
+.caliber-modal .cal-close:hover{color:#0e1d49}
+
+
+
+/* ===== PROGRESS BAR ===== */
+.fill-bar-wrap{margin-top:8px}
+.fill-bar-outer{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;display:flex}
+.fill-bar-inner{height:100%;border-radius:4px 0 0 4px;transition:width 0.6s ease}
+.fill-bar-inner.good{background:linear-gradient(90deg,#059669,#34d399)}
+.fill-bar-inner.warn{background:linear-gradient(90deg,#ee7623,#fbbf24)}
+.fill-bar-inner.bad{background:linear-gradient(90deg,#dc2626,#f87171)}
+.fill-bar-legend{display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;margin-top:3px}
+
+
+/* ===== CARD SECTION (板块化) ===== */
+.card-section{background:#fff;border-radius:10px;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;border-left:4px solid #0e1d49}
+.card-section-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.card-section-label{font-size:13px;font-weight:700;color:#0e1d49;background:linear-gradient(135deg,#e8f0fe 0%,#d0e4ff 100%);padding:4px 14px;border-radius:5px;display:inline-flex;align-items:center;gap:8px}
+.card-section-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#3f589a;color:#fff;font-size:11px;font-weight:700}
+.section-chart-area{margin-top:14px;padding-top:10px;border-top:1px dashed #d0d8e8}
+
+/* ===== Global filter bar ===== */
+.global-filter-bar{
+  background:#fff;border-radius:14px;padding:16px 28px;margin-bottom:20px;
+  box-shadow:0 2px 12px rgba(14,29,73,.06);
+  display:flex;align-items:center;justify-content:center;gap:0;
+  position:relative;overflow:hidden;
+}
+.global-filter-bar::before{
+  content:'';position:absolute;top:0;left:0;width:100%;height:3px;
+  background:linear-gradient(90deg,#0e1d49,#3f589a,#ee7623);
+}
+.global-filter-bar .global-label{
+  font-size:14px;font-weight:700;color:#0e1d49;white-space:nowrap;
+  margin-right:16px;padding-right:18px;
+  border-right:2px solid #e8edf5;
+  display:flex;align-items:center;gap:6px;
+}
+.global-filter-bar .global-label::before{
+  content:'';display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#ee7623;animation:pulse-dot 2s infinite;
+}
+@keyframes pulse-dot{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.5;transform:scale(1.6)}
+}
+.global-filter-bar .btn-group{
+  display:flex;align-items:center;gap:4px;
+  background:#f4f6fb;border-radius:10px;padding:4px;
+}
+.global-filter-bar .g-month-btn{
+  border:none;background:transparent;color:#64748b;
+  padding:7px 16px;border-radius:8px;cursor:pointer;
+  font-size:13px;font-weight:600;white-space:nowrap;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  position:relative;
+}
+.global-filter-bar .g-month-btn:hover{
+  color:#0e1d49;background:rgba(63,88,154,.08);
+}
+.global-filter-bar .g-month-btn.active{
+  background:#fff;color:#0e1d49;
+  box-shadow:0 2px 8px rgba(14,29,73,.12),0 0 0 1px rgba(14,29,73,.06);
+}
+.global-filter-bar .g-month-btn.acc{
+  margin-left:2px;padding-left:16px;
+}
+.global-filter-bar .g-month-btn.acc::before{
+  content:'';position:absolute;left:0;top:20%;height:60%;width:1px;
+  background:#d0d8e8;
+}
+.global-filter-bar .g-month-btn.acc.active{
+  background:linear-gradient(135deg,#0e1d49,#3f589a);color:#fff;
+  box-shadow:0 2px 10px rgba(14,29,73,.25);
+}
+
+/* ===== Section filter bar ===== */
+.section-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.month-btn{border:1px solid #dde3ef;background:#f5f8ff;color:#555;padding:4px 14px;border-radius:4px;cursor:pointer;font-size:11px;transition:background .2s}
+.month-btn:hover,.month-btn.active{background:linear-gradient(135deg,#0e1d49,#3f589a);color:#fff;border-color:#3f589a;font-weight:700}
+
+/* ===== BU card rows ===== */
+.ov-row{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding:4px 0}
+.ov-row::-webkit-scrollbar{height:4px}
+.ov-row::-webkit-scrollbar-thumb{background:#c0d0e8;border-radius:2px}
+.ov-card{flex:1;min-width:100px;border-radius:7px;padding:10px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);display:flex;flex-direction:column;justify-content:center;transition:transform .15s,box-shadow .15s}
+.ov-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.ov-card .bu-name{font-size:11px;font-weight:600;color:#0e1d49;margin-bottom:4px}
+.ov-card .big-num{font-size:22px;font-weight:800;line-height:1.15;color:#1e293b;font-variant-numeric:tabular-nums}
+.ov-card .small-info{font-size:10px;color:#64748b;margin-top:3px;font-weight:500}
+.ov-card .num-red{color:#dc2626!important;font-weight:700}
+.ov-card .text-green{color:#059669!important;font-weight:700}
+.ov-card .text-red{color:#dc2626!important;font-weight:700}
+
+/* Card colors */
+.blue-card{background:linear-gradient(135deg,#e8f0fe 0%,#dee9fc 100%)}
+.blue-card .big-num{color:#3f589a}
+.green-card{background:linear-gradient(135deg,#e8f8e8 0%,#d4f0d4 100%)}
+.green-card .big-num{color:#059669}
+.orange-card{background:linear-gradient(135deg,#fff5eb 0%,#ffe8d0 100%)}
+.orange-card .big-num{color:#ee7623}
+.red-card{background:linear-gradient(135deg,#fff0f0 0%,#ffe0e0 100%)}
+.red-card .big-num{color:#dc2626}
+.gray-card{background:linear-gradient(135deg,#f8fafc 0%,#e8ecf2 100%)}
+.gray-card .big-num{color:#475569}
+@media(max-width:1100px){.hero{grid-template-columns:repeat(2,1fr)}.warn-grid{grid-template-columns:repeat(2,1fr)}.charts-row{grid-template-columns:1fr}.high-level-wrap{grid-template-columns:1fr}}
+.high-note{grid-column:1/-1;margin-top:12px;padding:10px 16px;background:#fffbeb;border-left:4px solid #eab308;border-radius:8px;font-size:12px;color:#92400e;line-height:1.6}
+.chart-note{margin-top:8px;padding:5px 10px;background:#f8fafc;border-left:3px solid #cbd5e1;border-radius:6px;font-size:10px;color:#64748b;line-height:1.5}
+.section-note{margin-top:0;margin-bottom:12px;padding:8px 14px;background:#f0f4ff;border-left:3px solid #3f589a;border-radius:6px;font-size:11px;color:#475569;line-height:1.6}
+
+/* ===== SPARKLINE GRID ===== */
+.spark-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.spark-card{background:#fff;border-radius:10px;padding:10px 12px 8px;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .15s,box-shadow .15s;display:flex;flex-direction:column}
+.spark-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.spark-card .spark-top{display:flex;justify-content:space-between;align-items:flex-start}
+.spark-card .spark-bu{font-size:11px;font-weight:700;color:#0e1d49;line-height:1.2}
+.spark-card .spark-val{font-size:22px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.spark-card .spark-delta{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;width:fit-content;margin:2px 0 4px}
+.spark-card .spark-delta.up{color:#059669;background:#ecfdf5}
+.spark-card .spark-delta.down{color:#dc2626;background:#fef2f2}
+.spark-card .spark-delta.flat{color:#64748b;background:#f8fafc}
+.spark-card .spark-chart{flex:1;min-height:0}
+.spark-card .spark-chart canvas{width:100%!important;height:52px!important}
+.spark-card.total{border:2px solid #3f589a;background:linear-gradient(135deg,#f0f4ff 0%,#e0e8fc 100%)}
+.spark-card.total .spark-bu{font-size:12px}
+.spark-card.total .spark-val{font-size:26px;color:#0e1d49}
+@media(max-width:1100px){.spark-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.spark-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ===== ORANGE DIVIDER ===== */
+.orange-divider{height:3px;background:linear-gradient(90deg,#ee7623,#f59e0b,#ee7623)}
+
+/* ===== LEVEL DETAIL MODAL ===== */
+.level-overlay{display:none !important}
+.level-overlay.show{display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center}
+.level-modal{background:#fff;border-radius:14px;width:620px;max-width:92vw;max-height:82vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:24px 28px}
+.level-modal h3{font-size:16px;font-weight:700;color:#0e1d49;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px}
+.level-modal .lev-close{float:right;background:none;border:none;font-size:22px;color:#94a3b8;cursor:pointer;line-height:1;padding:0;margin:-2px 0 0 auto}
+.level-modal .lev-close:hover{color:#0e1d49}
+.level-table2{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.level-table2 thead th{background:#f0f4ff;color:#3f589a;font-weight:700;font-size:11px;padding:8px 10px;text-align:center;border-bottom:2px solid #d0d8e8}
+.level-table2 thead th:first-child{text-align:left}
+.level-table2 tbody td{padding:9px 10px;text-align:center;border-bottom:1px solid #f1f5f9;font-weight:500;font-variant-numeric:tabular-nums}
+.level-table2 tbody td:first-child{text-align:left;font-weight:700;color:#0e1d49}
+.level-table2 tbody tr:hover{background:#f8fafc}
+.level-table2 .lev-bar{height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;min-width:70px}
+.level-table2 .lev-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#3f589a,#5b7ac9)}
+.lev-close-btn{display:block;margin:18px auto 0;background:#e2e8f0;border:none;padding:8px 28px;border-radius:6px;font-size:13px;color:#475569;cursor:pointer;transition:all .2s}.lev-close-btn:hover{background:#0e1d49;color:#fff}
+.ov-card.clickable{cursor:pointer;position:relative}
+.ov-card.clickable .hover-hint{display:none;position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:#0e1d49;color:#fff;font-size:10px;padding:3px 8px;border-radius:3px;white-space:nowrap;z-index:10;pointer-events:none}
+.ov-card.clickable:hover .hover-hint{display:block}
+#row-active{overflow:visible!important;padding-top:28px}
+#row-join{overflow:visible!important;padding-top:28px}
+#row-resign{overflow:visible!important;padding-top:28px}
+#row-fill{overflow:visible!important;padding-top:28px}
+
+</style>
+<meta property="og:title" content="集团人力数据看板_20260611">
+<meta property="og:description" content="集团人力数据看板 - 2026年6月11日更新">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://liuyan185.github.io/hr-data-dashboard-20260611/">
+</head>
+<body>
+
+<!-- ==================== TOP BAR ==================== -->
+<div class="top-bar">
+  <h1>集团人力数据看板</h1>
+  <div class="meta">
+    <button class="caliber-btn" onclick="document.getElementById('caliber-overlay').classList.add('show')">ℹ 口径说明</button>
+    <span>统计周期：<strong>2026.01.01 — 2026.06.08</strong></span>
+    <span>数据来源：<strong>HR系统</strong></span>
+  </div>
+</div>
+
+<div class="orange-divider"></div>
+
+<!-- ===== STATS STRIP ===== -->
+<div class="stats-strip" id="stats-strip">
+  <div class="stat-item"><div class="stat-label">在职总人数</div><div class="stat-val blue" id="ss-active">—</div><div class="stat-sub" id="ss-active-sub">—</div></div>
+  <div class="stat-item"><div class="stat-label">整体满编率</div><div class="stat-val orange" id="ss-fillrate">—</div><div class="stat-sub" id="ss-fillrate-sub">—</div></div>
+  <div class="stat-item"><div class="stat-label">较年初净增</div><div class="stat-val green" id="ss-netgrowth">—</div><div class="stat-sub" id="ss-netgrowth-sub">—</div></div>
+  <div class="stat-item"><div class="stat-label">累计入职</div><div class="stat-val blue" id="ss-joined">—</div><div class="stat-sub" id="ss-joined-sub">—</div></div>
+  <div class="stat-item"><div class="stat-label">累计离职</div><div class="stat-val red" id="ss-resigned">—</div><div class="stat-sub" id="ss-resigned-sub">—</div></div>
+  <div class="stat-item"><div class="stat-label">整体离职率</div><div class="stat-val" id="ss-resignrate" style="color:#1e293b">—</div><div class="stat-sub" id="ss-resignrate-sub">—</div></div>
+</div>
+
+<!-- ==================== CALIBER MODAL ==================== -->
+<div class="caliber-overlay" id="caliber-overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="caliber-modal">
+    <button class="cal-close" onclick="document.getElementById('caliber-overlay').classList.remove('show')">✕</button>
+    <h2>📋 数据口径说明</h2>
+    <div class="cal-section"><h3>【司龄1年以内】</h3><p>2025年6月9日及以后入职、且截至统计日仍在职的员工。</p></div>
+    <div class="cal-section"><h3>【司龄1年以上】</h3><p>2025年6月9日以前入职、且截至统计日仍在职的员工。</p></div>
+    <div class="cal-section"><h3>【编制统计】</h3><p>含 ZT编制、GF编制、体系外编制、PBU财务编制。占编在职 = 编制表中编制在岗状态为"在职"且编制任职类型 ≠ <span class="highlight">"短期兼职"</span>的岗位数。满编率 = 占编在职人数 ÷ 编制总数 × 100%。</p></div>
+    <div class="cal-section"><h3>【离职分类】</h3><p>主动离职：离职类型为个人原因、发展因素、健康、家庭、创业、出国深造等。</p><p>被动离职：离职类型为人员优化、试用期不通过、法定解除、违纪、协商解除等。</p></div>
+    <div class="cal-section"><h3>【特殊处理】</h3><p>二次入职人员：既计入当期在职，其历史离职也计入对应月份离职人数；</p><p>短期兼职：不计入占编在职（满编率统计按空编处理），但在职人数含短期兼职。</p></div>
+  </div>
+</div>
+
+<!-- ==================== MAIN ==================== -->
+<div class="main">
+
+<!-- ═══════════ 全局月度筛选 ═══════════ -->
+<div class="global-filter-bar" id="global-filter-bar">
+  <span class="global-label">全局月度筛选</span>
+  <div class="btn-group">
+    <button class="g-month-btn" data-month="01" onclick="filterGlobalMonth('01',this)">1月</button>
+    <button class="g-month-btn" data-month="02" onclick="filterGlobalMonth('02',this)">2月</button>
+    <button class="g-month-btn" data-month="03" onclick="filterGlobalMonth('03',this)">3月</button>
+    <button class="g-month-btn" data-month="04" onclick="filterGlobalMonth('04',this)">4月</button>
+    <button class="g-month-btn" data-month="05" onclick="filterGlobalMonth('05',this)">5月</button>
+    <button class="g-month-btn" data-month="06" onclick="filterGlobalMonth('06',this)">6月</button>
+    <button class="g-month-btn acc active" data-month="all" onclick="filterGlobalMonth('all',this)">累计</button>
+  </div>
+</div>
+
+<!-- ═══════════ 板块一：在职 ═══════════ -->
+<div class="card-section" id="section-active">
+  <div class="card-section-header">
+    <span class="card-section-label"><span class="card-section-num">1</span>在职</span>
+    <div class="section-filter-row" id="active-month-filter">
+      <button class="month-btn" data-month="01" onclick="filterActiveMonth('01',this)">1月</button>
+      <button class="month-btn" data-month="02" onclick="filterActiveMonth('02',this)">2月</button>
+      <button class="month-btn" data-month="03" onclick="filterActiveMonth('03',this)">3月</button>
+      <button class="month-btn" data-month="04" onclick="filterActiveMonth('04',this)">4月</button>
+      <button class="month-btn" data-month="05" onclick="filterActiveMonth('05',this)">5月</button>
+      <button class="month-btn" data-month="06" onclick="filterActiveMonth('06',this)">6月</button>
+      <button class="month-btn active" data-month="all" onclick="filterActiveMonth('all',this)">累计</button>
+    </div>
+  </div>
+  <div class="ov-row" id="row-active"></div>
+  <div class="section-note" id="active-note"></div>
+  <div class="section-chart-area">
+    <div class="charts-row" style="grid-template-columns:1fr">
+      <div class="chart-card" style="padding:18px 24px"><h3>各BU月度在职人数</h3><canvas id="chart-bu-active" style="max-height:360px"></canvas></div>
+    </div>
+    <div class="charts-row" style="grid-template-columns:1fr;margin-top:14px">
+      <div class="chart-card"><h3>各BU司龄分布占比</h3><canvas id="chart-bu-seniority"></canvas><div class="chart-note">【司龄1年以内】2025年6月9日及以后入职、且截至统计日仍在职的员工。<br>【司龄1年以上】2025年6月9日以前入职、且截至统计日仍在职的员工。</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 板块二：入职 ═══════════ -->
+<div class="card-section" id="section-join">
+  <div class="card-section-header">
+    <span class="card-section-label"><span class="card-section-num">2</span>入职</span>
+    <div class="section-filter-row" id="join-month-filter">
+      <button class="month-btn" data-month="01" onclick="filterJoinMonth('01',this)">1月</button>
+      <button class="month-btn" data-month="02" onclick="filterJoinMonth('02',this)">2月</button>
+      <button class="month-btn" data-month="03" onclick="filterJoinMonth('03',this)">3月</button>
+      <button class="month-btn" data-month="04" onclick="filterJoinMonth('04',this)">4月</button>
+      <button class="month-btn" data-month="05" onclick="filterJoinMonth('05',this)">5月</button>
+      <button class="month-btn" data-month="06" onclick="filterJoinMonth('06',this)">6月</button>
+      <button class="month-btn active" data-month="all" onclick="filterJoinMonth('all',this)">累计</button>
+    </div>
+  </div>
+  <div class="ov-row" id="row-join"></div>
+  <div class="section-chart-area">
+    <div class="charts-row" style="grid-template-columns:1fr">
+      <div class="chart-card"><h3>各BU入职人数（按月度堆叠）</h3><canvas id="chart-join-monthly"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 板块三：离职 ═══════════ -->
+<div class="card-section" id="section-resign">
+  <div class="card-section-header">
+    <span class="card-section-label"><span class="card-section-num">3</span>离职</span>
+    <div class="section-filter-row" id="resign-month-filter">
+      <button class="month-btn" data-month="01" onclick="filterResignMonth('01',this)">1月</button>
+      <button class="month-btn" data-month="02" onclick="filterResignMonth('02',this)">2月</button>
+      <button class="month-btn" data-month="03" onclick="filterResignMonth('03',this)">3月</button>
+      <button class="month-btn" data-month="04" onclick="filterResignMonth('04',this)">4月</button>
+      <button class="month-btn" data-month="05" onclick="filterResignMonth('05',this)">5月</button>
+      <button class="month-btn" data-month="06" onclick="filterResignMonth('06',this)">6月</button>
+      <button class="month-btn active" data-month="all" onclick="filterResignMonth('all',this)">累计</button>
+    </div>
+  </div>
+  <div class="ov-row" id="row-resign"></div>
+  <div class="section-chart-area">
+    <div class="charts-row equal">
+      <div class="chart-card"><h3>月度入离职走势</h3><canvas id="chart-flow"></canvas></div>
+      <div class="chart-card"><h3>各BU离职率对比</h3><canvas id="chart-bu-resign-rate"></canvas></div>
+    </div>
+    <div class="charts-row" style="grid-template-columns:1fr;margin-top:14px">
+      <div class="chart-card"><h3>各BU主动/被动离职分布</h3><canvas id="chart-active-passive"></canvas><div class="chart-note">主动离职：离职类型为个人原因、发展因素、健康、家庭、创业、出国深造等。<br>被动离职：离职类型为人员优化、试用期不通过、法定解除、违纪、协商解除等。</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 板块四：满编率 ═══════════ -->
+<div class="card-section" id="section-fill">
+  <div class="card-section-header">
+    <span class="card-section-label"><span class="card-section-num">4</span>满编率</span>
+    <div class="section-filter-row" id="fill-month-filter">
+      <button class="month-btn" data-month="01" onclick="filterFillMonth('01',this)">1月</button>
+      <button class="month-btn" data-month="02" onclick="filterFillMonth('02',this)">2月</button>
+      <button class="month-btn" data-month="03" onclick="filterFillMonth('03',this)">3月</button>
+      <button class="month-btn" data-month="04" onclick="filterFillMonth('04',this)">4月</button>
+      <button class="month-btn" data-month="05" onclick="filterFillMonth('05',this)">5月</button>
+      <button class="month-btn active" data-month="all" onclick="filterFillMonth('all',this)">6月</button>
+    </div>
+  </div>
+  <div class="ov-row" id="row-fill"></div>
+  <div class="section-chart-area">
+    <div class="charts-row equal">
+      <div class="chart-card"><h3>各BU编制与在职对比</h3><canvas id="chart-bu-staff"></canvas></div>
+      <div class="chart-card"><h3>各层级满编率 & 在职人数</h3><canvas id="chart-level-fill"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 板块五：高层变动 ═══════════ -->
+<div class="card-section" id="section-high">
+  <div class="card-section-header">
+    <span class="card-section-label"><span class="card-section-num">5</span>高层变动</span>
+    <span style="font-size:11px;color:#64748b">高层人员变动 · 重点关注</span>
+  </div>
+  <div class="high-level-wrap" id="high-level-wrap" style="margin-top:10px"></div>
+</div>
+
+<!-- ═══════════ BU对比明细 ═══════════ -->
+<div class="card-section" id="section-table" style="border-left-color:#3f589a">
+  <div class="card-section-header">
+    <span class="card-section-label" style="background:linear-gradient(135deg,#f0f4ff 0%,#e0e8fc 100%)">BU对比明细</span>
+    <span style="font-size:11px;color:#64748b;margin-left:8px">点击列标题可排序</span>
+  </div>
+  <div class="health-table-wrap" id="health-table-wrap"></div>
+  <div class="chart-note" style="margin-top:8px">
+    状态列口径：<b>健康</b> = 满编率 ≥ 80%；<b>关注</b> = 满编率 60%—80%；<b>预警</b> = 满编率 ＜ 60%。<br>
+    风险列口径：<b>低风险</b> = 离职率 ≤ 10%；<b>关注</b> = 离职率 10%—18%；<b>高风险</b> = 离职率 ＞ 18%。
+  </div>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer"></div>
+</div>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script>
+Chart.register(ChartDataLabels);
+
+const MONTHS = ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06'];
+const MONTH_LABELS = ['1月','2月','3月','4月','5月','6月'];
+const MONTH_LABELS_EARLY = ['1月初','2月初','3月初','4月初','5月初','6月初'];
+const MONTH_SHORT = ['01','02','03','04','05','06'];
+
+const D = {"bu_order":["LBU","FBU","ABU","PBU","GEU","GUS","HQU_HRAS","HQU_FES","HQU_技术部","HQU_其他"],"bu_data":{"LBU":{"active":1323,"staff":1590,"filled":1181,"fillRate":74.3,"joined":397,"resigned":222,"resignRate":14.4,"newRetentionRate":80.4,"netGrowth":133,"newEmployee":319,"oldEmployee":1004,"activeResign":136,"passiveResign":86,"joinedJan":75,"joinedFeb":36,"joinedMar":96,"joinedApr":77,"joinedMay":78,"joinedJun":35,"resignedJan":42,"resignedFeb":27,"resignedMar":43,"resignedApr":50,"resignedMay":54,"resignedJun":6,"jan_active":1190,"staff_jan":1498,"staff_feb":1433,"staff_mar":1431,"staff_apr":1411,"staff_may":1479,"filled_jan":1107,"filled_feb":1030,"filled_mar":1077,"filled_apr":1068,"filled_may":1125,"fillRate_jan":73.9,"fillRate_feb":71.9,"fillRate_mar":75.3,"fillRate_apr":75.7,"fillRate_may":76.1,"seniorityUnder1":532,"seniorityOver1":791,"levels":{"P1":705,"P2":469,"基层干部":95,"中层干部":26,"P3":18,"高层干部":10},"joinedLevels":{"P1":279,"P2":101,"基层干部":13,"P3":3,"中层干部":1},"resignedLevels":{"P1":130,"P2":78,"基层干部":8,"中层干部":3,"高层干部":2,"P3":1},"joinedMonthlyLevels":{"2026-01":{"P1":60,"P2":12,"基层干部":2,"P3":1},"2026-02":{"P1":24,"P2":9,"基层干部":3},"2026-03":{"P1":68,"P2":27,"基层干部":1},"2026-04":{"P1":51,"P3":2,"P2":22,"基层干部":2},"2026-05":{"P1":56,"P2":19,"基层干部":3},"2026-06":{"P2":12,"P1":20,"基层干部":2,"中层干部":1}},"resignedMonthlyLevels":{"2026-01":{"P2":16,"P1":23,"P3":1,"中层干部":1,"基层干部":1},"2026-02":{"P2":11,"P1":14,"中层干部":2},"2026-03":{"P2":19,"P1":22,"基层干部":2},"2026-04":{"P1":35,"P2":14,"基层干部":1},"2026-05":{"高层干部":1,"P2":16,"P1":34,"基层干部":3},"2026-06":{"P1":2,"基层干部":1,"P2":2,"高层干部":1}},"staffLevels":{"高层干部":18,"P2":839,"中层干部":49,"基层干部":145,"P1":501,"P3":38},"staffDomestic":1467,"staffOverseas":123,"resignMonthlyActivePassive":{"2026-01":{"active":23,"passive":19},"2026-02":{"active":13,"passive":14},"2026-03":{"active":29,"passive":14},"2026-04":{"active":29,"passive":21},"2026-05":{"active":38,"passive":16},"2026-06":{"active":4,"passive":2}}},"FBU":{"active":2371,"staff":2441,"filled":1540,"fillRate":63.1,"joined":563,"resigned":349,"resignRate":12.8,"newRetentionRate":78.5,"netGrowth":206,"newEmployee":442,"oldEmployee":1929,"activeResign":237,"passiveResign":111,"joinedJan":80,"joinedFeb":75,"joinedMar":98,"joinedApr":125,"joinedMay":143,"joinedJun":42,"resignedJan":71,"resignedFeb":49,"resignedMar":67,"resignedApr":68,"resignedMay":80,"resignedJun":13,"jan_active":2165,"staff_jan":1871,"staff_feb":1893,"staff_mar":2071,"staff_apr":2118,"staff_may":2368,"filled_jan":1353,"filled_feb":1335,"filled_mar":1304,"filled_apr":1421,"filled_may":1543,"fillRate_jan":72.3,"fillRate_feb":70.5,"fillRate_mar":63.0,"fillRate_apr":67.1,"fillRate_may":65.2,"seniorityUnder1":785,"seniorityOver1":1586,"levels":{"P1":1460,"P2":414,"基层干部":360,"中层干部":80,"P3":31,"高层干部":26},"joinedLevels":{"P1":482,"P2":66,"基层干部":7,"中层干部":5,"P3":3},"resignedLevels":{"P1":289,"P2":34,"基层干部":24,"中层干部":2},"joinedMonthlyLevels":{"2026-01":{"P1":67,"P2":10,"P3":1,"基层干部":1,"中层干部":1},"2026-02":{"P1":69,"P2":5,"中层干部":1},"2026-03":{"P1":85,"P2":11,"基层干部":1,"中层干部":1},"2026-04":{"P1":108,"P2":12,"中层干部":1,"P3":2,"基层干部":2},"2026-05":{"P1":119,"P2":20,"基层干部":3,"中层干部":1},"2026-06":{"P1":34,"P2":8}},"resignedMonthlyLevels":{"2026-01":{"P1":56,"P2":8,"基层干部":6,"中层干部":1},"2026-02":{"P1":45,"P2":1,"基层干部":3},"2026-03":{"P1":57,"中层干部":1,"P2":5,"基层干部":4},"2026-04":{"P1":58,"P2":4,"基层干部":6},"2026-05":{"P1":62,"P2":15,"基层干部":3},"2026-06":{"P1":11,"基层干部":2,"P2":1}},"staffLevels":{"高层干部":32,"P3":71,"P2":686,"P1":872,"基层干部":681,"中层干部":99},"staffDomestic":902,"staffOverseas":1539,"resignMonthlyActivePassive":{"2026-01":{"active":50,"passive":21},"2026-02":{"active":27,"passive":22},"2026-03":{"active":51,"passive":16},"2026-04":{"active":45,"passive":23},"2026-05":{"active":54,"passive":26},"2026-06":{"active":10,"passive":3}}},"ABU":{"active":292,"staff":492,"filled":275,"fillRate":55.9,"joined":173,"resigned":91,"resignRate":23.8,"newRetentionRate":82.1,"netGrowth":82,"newEmployee":142,"oldEmployee":150,"activeResign":35,"passiveResign":56,"joinedJan":21,"joinedFeb":9,"joinedMar":35,"joinedApr":50,"joinedMay":44,"joinedJun":14,"resignedJan":11,"resignedFeb":8,"resignedMar":25,"resignedApr":17,"resignedMay":27,"resignedJun":3,"jan_active":210,"staff_jan":406,"staff_feb":411,"staff_mar":436,"staff_apr":466,"staff_may":492,"filled_jan":210,"filled_feb":211,"filled_mar":204,"filled_apr":240,"filled_may":271,"fillRate_jan":51.7,"fillRate_feb":51.3,"fillRate_mar":46.8,"fillRate_apr":51.5,"fillRate_may":55.1,"seniorityUnder1":226,"seniorityOver1":66,"levels":{"P1":154,"P2":109,"中层干部":11,"P3":9,"基层干部":5,"高层干部":4},"joinedLevels":{"P1":118,"P2":51,"P3":2,"基层干部":1,"中层干部":1},"resignedLevels":{"P1":68,"P2":19,"P3":2,"中层干部":1,"基层干部":1},"joinedMonthlyLevels":{"2026-01":{"P1":13,"P2":8},"2026-02":{"P2":5,"P1":4},"2026-03":{"P1":24,"P2":10,"中层干部":1},"2026-04":{"P2":11,"P1":38,"P3":1},"2026-05":{"P1":31,"P2":11,"基层干部":1,"P3":1},"2026-06":{"P1":8,"P2":6}},"resignedMonthlyLevels":{"2026-01":{"P1":5,"P2":3,"中层干部":1,"基层干部":1,"P3":1},"2026-02":{"P1":7,"P2":1},"2026-03":{"P1":19,"P2":5,"P3":1},"2026-04":{"P1":15,"P2":2},"2026-05":{"P1":21,"P2":6},"2026-06":{"P1":1,"P2":2}},"staffLevels":{"P2":233,"P1":190,"高层干部":9,"中层干部":15,"P3":31,"基层干部":14},"staffDomestic":463,"staffOverseas":29,"resignMonthlyActivePassive":{"2026-01":{"active":8,"passive":3},"2026-02":{"active":3,"passive":5},"2026-03":{"active":6,"passive":19},"2026-04":{"active":5,"passive":12},"2026-05":{"active":13,"passive":14},"2026-06":{"active":0,"passive":3}}},"PBU":{"active":438,"staff":410,"filled":346,"fillRate":84.4,"joined":76,"resigned":80,"resignRate":15.4,"newRetentionRate":81.6,"netGrowth":-16,"newEmployee":62,"oldEmployee":376,"activeResign":51,"passiveResign":29,"joinedJan":11,"joinedFeb":8,"joinedMar":24,"joinedApr":13,"joinedMay":13,"joinedJun":7,"resignedJan":15,"resignedFeb":17,"resignedMar":17,"resignedApr":14,"resignedMay":14,"resignedJun":3,"jan_active":454,"staff_jan":332,"staff_feb":409,"staff_mar":402,"staff_apr":408,"staff_may":410,"filled_jan":299,"filled_feb":327,"filled_mar":331,"filled_apr":339,"filled_may":346,"fillRate_jan":90.1,"fillRate_feb":80.0,"fillRate_mar":82.3,"fillRate_apr":83.1,"fillRate_may":84.4,"seniorityUnder1":173,"seniorityOver1":265,"levels":{"P1":273,"P2":119,"基层干部":20,"中层干部":14,"P3":8,"高层干部":4},"joinedLevels":{"P1":60,"P2":16},"resignedLevels":{"P1":57,"P2":18,"基层干部":5},"joinedMonthlyLevels":{"2026-01":{"P1":10,"P2":1},"2026-02":{"P1":6,"P2":2},"2026-03":{"P1":17,"P2":7},"2026-04":{"P1":10,"P2":3},"2026-05":{"P1":12,"P2":1},"2026-06":{"P2":2,"P1":5}},"resignedMonthlyLevels":{"2026-01":{"P1":11,"基层干部":2,"P2":2},"2026-02":{"P2":4,"P1":12,"基层干部":1},"2026-03":{"P1":12,"基层干部":1,"P2":4},"2026-04":{"P1":11,"基层干部":1,"P2":2},"2026-05":{"P1":9,"P2":5},"2026-06":{"P1":2,"P2":1}},"staffLevels":{"高层干部":5,"中层干部":22,"P2":141,"P1":207,"P3":6,"基层干部":29},"staffDomestic":116,"staffOverseas":294,"resignMonthlyActivePassive":{"2026-01":{"active":9,"passive":6},"2026-02":{"active":11,"passive":6},"2026-03":{"active":13,"passive":4},"2026-04":{"active":8,"passive":6},"2026-05":{"active":8,"passive":6},"2026-06":{"active":2,"passive":1}}},"GEU":{"active":713,"staff":1035,"filled":718,"fillRate":69.4,"joined":285,"resigned":178,"resignRate":20.1,"newRetentionRate":81.1,"netGrowth":107,"newEmployee":231,"oldEmployee":482,"activeResign":111,"passiveResign":66,"joinedJan":59,"joinedFeb":30,"joinedMar":62,"joinedApr":58,"joinedMay":58,"joinedJun":18,"resignedJan":35,"resignedFeb":34,"resignedMar":35,"resignedApr":29,"resignedMay":38,"resignedJun":8,"jan_active":606,"staff_jan":1179,"staff_feb":1028,"staff_mar":1058,"staff_apr":968,"staff_may":1034,"filled_jan":596,"filled_feb":547,"filled_mar":604,"filled_apr":576,"filled_may":709,"fillRate_jan":50.5,"fillRate_feb":53.2,"fillRate_mar":57.1,"fillRate_apr":59.5,"fillRate_may":68.6,"seniorityUnder1":490,"seniorityOver1":223,"levels":{"P1":466,"P2":177,"P3":28,"基层干部":25,"中层干部":13,"高层干部":4},"joinedLevels":{"P1":230,"P2":41,"基层干部":7,"P3":6,"中层干部":1},"resignedLevels":{"P1":132,"P2":32,"P3":8,"基层干部":4,"中层干部":2},"joinedMonthlyLevels":{"2026-01":{"P1":50,"P2":9},"2026-02":{"P1":28,"P2":1,"P3":1},"2026-03":{"P1":52,"P2":8,"基层干部":2},"2026-04":{"P1":45,"中层干部":1,"P2":6,"基层干部":2,"P3":4},"2026-05":{"P1":39,"P2":16,"基层干部":3},"2026-06":{"P1":16,"P3":1,"P2":1}},"resignedMonthlyLevels":{"2026-01":{"P1":24,"P2":6,"P3":4,"中层干部":1},"2026-02":{"P1":27,"P2":5,"基层干部":1},"2026-03":{"基层干部":2,"P2":6,"P1":26},"2026-04":{"P1":18,"P3":3,"P2":8},"2026-05":{"P1":28,"P2":7,"中层干部":1,"P3":1,"基层干部":1},"2026-06":{"P1":9}},"staffLevels":{"P3":46,"中层干部":17,"高层干部":6,"P2":245,"P1":663,"基层干部":58},"staffDomestic":1035,"staffOverseas":0,"resignMonthlyActivePassive":{"2026-01":{"active":20,"passive":15},"2026-02":{"active":18,"passive":15},"2026-03":{"active":24,"passive":10},"2026-04":{"active":19,"passive":10},"2026-05":{"active":25,"passive":13},"2026-06":{"active":5,"passive":3}}},"GUS":{"active":1450,"staff":2016,"filled":1449,"fillRate":71.9,"joined":615,"resigned":335,"resignRate":18.9,"newRetentionRate":78.2,"netGrowth":302,"newEmployee":481,"oldEmployee":969,"activeResign":226,"passiveResign":109,"joinedJan":86,"joinedFeb":106,"joinedMar":136,"joinedApr":133,"joinedMay":115,"joinedJun":39,"resignedJan":38,"resignedFeb":54,"resignedMar":68,"resignedApr":72,"resignedMay":87,"resignedJun":18,"jan_active":1148,"staff_jan":1548,"staff_feb":1645,"staff_mar":1715,"staff_apr":1811,"staff_may":1964,"filled_jan":1059,"filled_feb":1254,"filled_mar":1345,"filled_apr":1374,"filled_may":1443,"fillRate_jan":68.4,"fillRate_feb":76.2,"fillRate_mar":78.4,"fillRate_apr":75.9,"fillRate_may":73.5,"seniorityUnder1":1049,"seniorityOver1":401,"levels":{"P1":1010,"P2":271,"基层干部":103,"P3":40,"中层干部":21,"高层干部":5},"joinedLevels":{"P1":522,"P2":72,"基层干部":13,"P3":7,"中层干部":1},"resignedLevels":{"P1":284,"P2":32,"基层干部":17,"中层干部":1,"P3":1},"joinedMonthlyLevels":{"2026-01":{"P1":76,"P2":7,"基层干部":2,"P3":1},"2026-02":{"P1":87,"基层干部":2,"P2":14,"中层干部":1,"P3":2},"2026-03":{"P1":115,"P2":18,"P3":1,"基层干部":2},"2026-04":{"P1":114,"P2":12,"基层干部":5,"P3":2},"2026-05":{"P1":96,"P2":17,"基层干部":2},"2026-06":{"P1":34,"P2":4,"P3":1}},"resignedMonthlyLevels":{"2026-01":{"P1":34,"P2":3},"2026-02":{"P1":48,"P2":1,"基层干部":5},"2026-03":{"P2":13,"P1":50,"基层干部":3,"P3":1},"2026-04":{"P1":59,"P2":8,"基层干部":4,"中层干部":1},"2026-05":{"P2":7,"P1":75,"基层干部":5},"2026-06":{"P1":18}},"staffLevels":{"高层干部":8,"中层干部":31,"基层干部":179,"P1":1337,"P2":415,"P3":46},"staffDomestic":2016,"staffOverseas":0,"resignMonthlyActivePassive":{"2026-01":{"active":23,"passive":14},"2026-02":{"active":35,"passive":19},"2026-03":{"active":42,"passive":25},"2026-04":{"active":46,"passive":26},"2026-05":{"active":65,"passive":22},"2026-06":{"active":15,"passive":3}}},"HQU_HRAS":{"active":401,"staff":511,"filled":340,"fillRate":66.5,"joined":116,"resigned":72,"resignRate":15.2,"newRetentionRate":76.7,"netGrowth":35,"newEmployee":89,"oldEmployee":312,"activeResign":42,"passiveResign":30,"joinedJan":23,"joinedFeb":8,"joinedMar":31,"joinedApr":20,"joinedMay":27,"joinedJun":7,"resignedJan":10,"resignedFeb":14,"resignedMar":9,"resignedApr":19,"resignedMay":20,"resignedJun":0,"jan_active":366,"staff_jan":440,"staff_feb":436,"staff_mar":473,"staff_apr":488,"staff_may":533,"filled_jan":341,"filled_feb":335,"filled_mar":373,"filled_apr":364,"filled_may":358,"fillRate_jan":77.5,"fillRate_feb":76.8,"fillRate_mar":78.9,"fillRate_apr":74.6,"fillRate_may":67.2,"seniorityUnder1":194,"seniorityOver1":207,"levels":{"P2":183,"P1":172,"基层干部":15,"中层干部":15,"P3":10,"高层干部":6},"joinedLevels":{"P1":80,"P2":34,"基层干部":1,"P3":1},"resignedLevels":{"P1":54,"P2":17,"高层干部":1},"joinedMonthlyLevels":{"2026-01":{"P1":18,"P2":5},"2026-02":{"P1":6,"P3":1,"P2":1},"2026-03":{"P1":19,"P2":12},"2026-04":{"P1":15,"P2":4,"基层干部":1},"2026-05":{"P2":10,"P1":17},"2026-06":{"P1":5,"P2":2}},"resignedMonthlyLevels":{"2026-01":{"P1":9,"P2":1},"2026-02":{"P2":4,"P1":10},"2026-03":{"P1":7,"P2":2},"2026-04":{"P1":15,"P2":4},"2026-05":{"P2":6,"P1":13,"高层干部":1}},"staffLevels":{"高层干部":7,"P2":245,"P3":14,"P1":213,"中层干部":20,"基层干部":12},"staffDomestic":425,"staffOverseas":86,"resignMonthlyActivePassive":{"2026-01":{"active":6,"passive":4},"2026-02":{"active":6,"passive":8},"2026-03":{"active":6,"passive":3},"2026-04":{"active":12,"passive":7},"2026-05":{"active":12,"passive":8},"2026-06":{"active":0,"passive":0}}},"HQU_FES":{"active":554,"staff":652,"filled":486,"fillRate":74.5,"joined":107,"resigned":56,"resignRate":9.2,"newRetentionRate":89.7,"netGrowth":53,"newEmployee":96,"oldEmployee":458,"activeResign":44,"passiveResign":12,"joinedJan":12,"joinedFeb":5,"joinedMar":17,"joinedApr":31,"joinedMay":28,"joinedJun":14,"resignedJan":9,"resignedFeb":5,"resignedMar":8,"resignedApr":16,"resignedMay":14,"resignedJun":4,"jan_active":501,"staff_jan":576,"staff_feb":574,"staff_mar":594,"staff_apr":651,"staff_may":652,"filled_jan":328,"filled_feb":329,"filled_mar":277,"filled_apr":458,"filled_may":470,"fillRate_jan":56.9,"fillRate_feb":57.3,"fillRate_mar":46.6,"fillRate_apr":70.4,"fillRate_may":72.1,"seniorityUnder1":196,"seniorityOver1":358,"levels":{"P2":311,"P1":153,"P3":40,"中层干部":34,"高层干部":11,"基层干部":5},"joinedLevels":{"P2":55,"P1":40,"P3":8,"中层干部":3,"高层干部":1},"resignedLevels":{"P2":29,"P1":22,"P3":3,"高层干部":1,"基层干部":1},"joinedMonthlyLevels":{"2026-01":{"P2":4,"P1":8},"2026-02":{"P2":2,"P1":2,"高层干部":1},"2026-03":{"P2":10,"P1":3,"P3":3,"中层干部":1},"2026-04":{"P2":16,"P3":2,"P1":11,"中层干部":2},"2026-05":{"P2":14,"P1":13,"P3":1},"2026-06":{"P1":3,"P2":9,"P3":2}},"resignedMonthlyLevels":{"2026-01":{"P1":3,"P3":1,"P2":4,"基层干部":1},"2026-02":{"P1":2,"P2":3},"2026-03":{"高层干部":1,"P1":4,"P2":3},"2026-04":{"P1":6,"P2":8,"P3":2},"2026-05":{"P1":6,"P2":8},"2026-06":{"P1":1,"P2":3}},"staffLevels":{"P2":422,"P3":56,"高层干部":15,"中层干部":30,"P1":123,"基层干部":6},"staffDomestic":601,"staffOverseas":51,"resignMonthlyActivePassive":{"2026-01":{"active":6,"passive":3},"2026-02":{"active":4,"passive":1},"2026-03":{"active":8,"passive":0},"2026-04":{"active":11,"passive":5},"2026-05":{"active":12,"passive":2},"2026-06":{"active":3,"passive":1}}},"HQU_技术部":{"active":93,"staff":99,"filled":81,"fillRate":81.8,"joined":7,"resigned":4,"resignRate":4.1,"newRetentionRate":85.7,"netGrowth":3,"newEmployee":6,"oldEmployee":87,"activeResign":2,"passiveResign":2,"joinedJan":0,"joinedFeb":1,"joinedMar":4,"joinedApr":2,"joinedMay":0,"joinedJun":0,"resignedJan":1,"resignedFeb":1,"resignedMar":1,"resignedApr":0,"resignedMay":1,"resignedJun":0,"jan_active":90,"staff_jan":97,"staff_feb":97,"staff_mar":98,"staff_apr":98,"staff_may":98,"filled_jan":90,"filled_feb":88,"filled_mar":86,"filled_apr":83,"filled_may":82,"fillRate_jan":92.8,"fillRate_feb":90.7,"fillRate_mar":87.8,"fillRate_apr":84.7,"fillRate_may":83.7,"seniorityUnder1":14,"seniorityOver1":79,"levels":{"P2":73,"P1":6,"基层干部":6,"中层干部":3,"高层干部":3,"P3":2},"joinedLevels":{"P2":5,"高层干部":1,"P1":1},"resignedLevels":{"P2":3,"P1":1},"joinedMonthlyLevels":{"2026-02":{"P2":1},"2026-03":{"P2":3,"P1":1},"2026-04":{"高层干部":1,"P2":1}},"resignedMonthlyLevels":{"2026-01":{"P2":1},"2026-02":{"P1":1},"2026-03":{"P2":1},"2026-05":{"P2":1}},"staffLevels":{"高层干部":4,"P1":7,"P2":78,"中层干部":4,"基层干部":5,"P3":1},"staffDomestic":67,"staffOverseas":32,"resignMonthlyActivePassive":{"2026-01":{"active":0,"passive":1},"2026-02":{"active":1,"passive":0},"2026-03":{"active":0,"passive":1},"2026-04":{"active":0,"passive":0},"2026-05":{"active":1,"passive":0},"2026-06":{"active":0,"passive":0}}},"HQU_其他":{"active":16,"staff":21,"filled":18,"fillRate":85.7,"joined":1,"resigned":0,"resignRate":0.0,"newRetentionRate":100.0,"netGrowth":1,"newEmployee":1,"oldEmployee":15,"activeResign":0,"passiveResign":0,"joinedJan":0,"joinedFeb":0,"joinedMar":0,"joinedApr":0,"joinedMay":1,"joinedJun":0,"resignedJan":0,"resignedFeb":0,"resignedMar":0,"resignedApr":0,"resignedMay":0,"resignedJun":0,"jan_active":15,"staff_jan":20,"staff_feb":20,"staff_mar":20,"staff_apr":21,"staff_may":21,"filled_jan":19,"filled_feb":17,"filled_mar":17,"filled_apr":17,"filled_may":18,"fillRate_jan":95.0,"fillRate_feb":85.0,"fillRate_mar":85.0,"fillRate_apr":81.0,"fillRate_may":85.7,"seniorityUnder1":3,"seniorityOver1":13,"levels":{"P3":8,"P2":4,"高层干部":4},"joinedLevels":{"P2":1},"resignedLevels":{},"joinedMonthlyLevels":{"2026-05":{"P2":1}},"resignedMonthlyLevels":{},"staffLevels":{"P2":5,"P3":8,"高层干部":8},"staffDomestic":19,"staffOverseas":2}},"total":{"active":7651,"staff":9267,"filled":6434,"fillRate":69.4,"joined":2340,"resigned":1389,"resignRate":15.4,"newRetentionRate":79.9,"netGrowth":906,"activeResign":884,"passiveResign":501,"staff_jan":7967,"staff_feb":7946,"staff_mar":8298,"staff_apr":8440,"staff_may":9051,"filled_jan":5402,"filled_feb":5473,"filled_mar":5618,"filled_apr":5940,"filled_may":6365,"fillRate_jan":67.8,"fillRate_feb":68.9,"fillRate_mar":67.7,"fillRate_apr":70.4,"fillRate_may":70.3},"monthly_active":{"LBU":[1190,1219,1198,1250,1276,1294],"FBU":[2165,2174,2200,2226,2285,2342],"ABU":[210,219,222,232,265,281],"PBU":[454,436,422,428,426,434],"GEU":[606,637,633,662,691,703],"GUS":[1148,1195,1271,1334,1402,1429],"HQU_HRAS":[366,381,374,394,392,394],"HQU_FES":[501,506,504,514,531,544],"HQU_技术部":[90,89,89,92,94,93],"HQU_其他":[15,15,15,15,15,16]},"monthly_active_total":[6745,6871,6928,7147,7377,7530],"monthly_join_total":{"2026-01":367,"2026-02":278,"2026-03":503,"2026-04":509,"2026-05":507,"2026-06":176},"monthly_resign_total":{"2026-01":232,"2026-02":209,"2026-03":273,"2026-04":285,"2026-05":335,"2026-06":55},"level_data":{"高层干部":{"name":"高层干部","active":77,"staff":112,"filled":99,"fillRate":88.4,"resigned":4,"activeResign":4,"passiveResign":0},"中层干部":{"name":"中层干部","active":217,"staff":287,"filled":244,"fillRate":85.0,"resigned":9,"activeResign":3,"passiveResign":6},"基层干部":{"name":"基层干部","active":634,"staff":1129,"filled":692,"fillRate":61.3,"resigned":60,"activeResign":43,"passiveResign":17},"P3":{"name":"P3","active":194,"staff":317,"filled":219,"fillRate":69.1,"resigned":15,"activeResign":10,"passiveResign":5},"P2":{"name":"P2","active":2130,"staff":3309,"filled":2441,"fillRate":73.8,"resigned":262,"activeResign":163,"passiveResign":99},"P1":{"name":"P1","active":4399,"staff":4113,"filled":2739,"fillRate":66.6,"resigned":1039,"activeResign":661,"passiveResign":374}},"level_detail":{"GEU":{"P1":466,"中层干部":13,"P2":177,"P3":28,"基层干部":25,"高层干部":4},"HQU_FES":{"P2":311,"P1":153,"中层干部":34,"P3":40,"高层干部":11,"基层干部":5},"HQU_HRAS":{"P1":172,"P2":183,"基层干部":15,"中层干部":15,"P3":10,"高层干部":6},"PBU":{"P1":273,"P3":8,"中层干部":14,"P2":119,"基层干部":20,"高层干部":4},"FBU":{"P1":1460,"P2":414,"基层干部":360,"P3":31,"中层干部":80,"高层干部":26},"GUS":{"P2":271,"P1":1010,"P3":40,"基层干部":103,"中层干部":21,"高层干部":5},"LBU":{"P1":705,"P2":469,"基层干部":95,"中层干部":26,"P3":18,"高层干部":10},"ABU":{"P1":154,"P2":109,"基层干部":5,"中层干部":11,"P3":9,"高层干部":4},"HQU_其他":{"P3":8,"P2":4,"高层干部":4},"HQU_技术部":{"P2":73,"P1":6,"基层干部":6,"P3":2,"中层干部":3,"高层干部":3}},"high_level_joins":[{"name":"陈文兵","id":"zt28819","joinDate":"2026/04/10","status":"试用","dept2":"HQU技术部","dept3":"信息安全部","dept4":"-","grade":"M3-3","position":"信息安全部副总监"},{"name":"朱建华","id":"zt28411","joinDate":"2026/02/24","status":"试用","dept2":"FES财经条线","dept3":"FES技术部","dept4":"财务方案组","grade":"M3-3","position":"财务方案组副总监"}],"high_level_resignations":[{"name":"陈志远","id":"zt19301","joinDate":"2021/04/01","status":"离职","dept2":"LBU速运事业部","dept3":"第四纵队","dept4":"42野","grade":"M3-3","position":"42野负责人","resignDate":"2026/06/04","resignReason":"主动离职"},{"name":"Thijs Boots","id":"zt24651","joinDate":"2023/06/01","status":"离职","dept2":"LBU速运事业部","dept3":"欧洲质检项目部","dept4":"-","grade":"M3-3","position":"欧洲区副总经理","resignDate":"2026/05/31","resignReason":"主动离职"},{"name":"付巍巍","id":"zt10002","joinDate":"2012/12/16","status":"离职","dept2":"HRAS人力综合条线","dept3":"LBU HRBP Dept.","dept4":"-","grade":"M4-2","position":"LBU人力资源部高级总监","resignDate":"2026/05/31","resignReason":"主动离职"},{"name":"徐慧懿","id":"GL000999","joinDate":"2022/04/25","status":"离职","dept2":"FES财经条线","dept3":"GOFO财务部","dept4":"-","grade":"M4-1","position":"财务BP总监","resignDate":"2026/03/16","resignReason":"主动离职"}],"total_joined_levels":{"P1":1812,"P2":442,"基层干部":42,"P3":30,"中层干部":12,"高层干部":2},"total_resigned_levels":{"P1":1037,"P2":262,"基层干部":60,"中层干部":9,"高层干部":4,"P3":15},"joinedMonthlyLevels":{"2026-01":{"P1":302,"P2":56,"基层干部":5,"P3":3,"中层干部":1},"2026-02":{"P1":226,"P2":40,"基层干部":5,"中层干部":2,"P3":4,"高层干部":1},"2026-03":{"P1":384,"P2":106,"基层干部":6,"中层干部":3,"P3":4},"2026-04":{"P1":392,"P3":13,"P2":87,"基层干部":12,"中层干部":4,"高层干部":1},"2026-05":{"P1":383,"P2":109,"基层干部":12,"中层干部":1,"P3":2},"2026-06":{"P2":44,"P1":125,"基层干部":2,"中层干部":1,"P3":4}},"resignedMonthlyLevels":{"2026-01":{"P2":44,"P1":165,"P3":7,"中层干部":4,"基层干部":11},"2026-02":{"P2":30,"P1":166,"中层干部":2,"基层干部":10},"2026-03":{"P2":58,"P1":197,"基层干部":12,"中层干部":1,"P3":2,"高层干部":1},"2026-04":{"P1":217,"P2":50,"基层干部":12,"P3":5,"中层干部":1},"2026-05":{"高层干部":2,"P2":71,"P1":248,"基层干部":12,"中层干部":1,"P3":1},"2026-06":{"P1":44,"基层干部":3,"P2":9,"高层干部":1}},"staffLevels":{"高层干部":112,"P2":3309,"中层干部":287,"基层干部":1129,"P1":4113,"P3":317},"staffDomestic":7111,"staffOverseas":2156,"resignMonthlyActivePassive":{"2026-01":{"active":145,"passive":86},"2026-02":{"active":118,"passive":90},"2026-03":{"active":179,"passive":92},"2026-04":{"active":175,"passive":110},"2026-05":{"active":228,"passive":107},"2026-06":{"active":39,"passive":16}}};
+const BU_ORDER = D.bu_order;
+const T = D.total;
+const BU_PALETTE = ['#3f589a','#0891b2','#059669','#7c3aed','#ee7623','#dc2626','#0d9488','#65a30d','#db2777','#ea580c'];
+const LEVEL_ORDER = ['高层干部','中层干部','基层干部','P3','P2','P1'];
+
+var healthSortCol = null;
+var healthSortAsc = true;
+
+// Level detail drill-through
+var LEVEL_RANK = LEVEL_ORDER;
+function showLevelDetail(bu,type,month){
+  type = type || 'active';
+  var typeLabel = type==='joined'?'入职':(type==='resigned'?'离职':(type==='staff'?'编制':'在职'));
+  var monthLabel = month ? parseInt(month)+'月' : '';
+  var titlePrefix = month ? monthLabel : '累计';
+  var levels, total, extraInfo='';
+  var monthKey = month ? '2026-'+month : null;
+  
+  // Helper: get monthly levels from joinedMonthlyLevels or resignedMonthlyLevels
+  function getMonthlyLevels(src, mKey){
+    if(!src||!mKey) return null;
+    return src[mKey] || null;
+  }
+  
+  if(bu==='集团合计'){
+    if(type==='joined'){
+      if(monthKey){
+        levels = getMonthlyLevels(D.joinedMonthlyLevels, monthKey) || {};
+      } else {
+        levels = D.total_joined_levels || {};
+      }
+    } else if(type==='resigned'){
+      if(monthKey){
+        levels = getMonthlyLevels(D.resignedMonthlyLevels, monthKey) || {};
+      } else {
+        levels = D.total_resigned_levels || {};
+      }
+    } else if(type==='staff'){
+      levels = D.staffLevels || {};
+    } else {
+      levels = {};
+      BU_ORDER.forEach(function(b){
+        var bl = D.bu_data[b] ? D.bu_data[b].levels : {};
+        for(var k in bl){ levels[k] = (levels[k]||0) + bl[k]; }
+      });
+    }
+    total = Object.values(levels).reduce(function(a,b){return a+b},0);
+  } else if(D.bu_data[bu]){
+    if(type==='joined'){
+      if(monthKey){
+        levels = getMonthlyLevels(D.bu_data[bu].joinedMonthlyLevels, monthKey) || {};
+      } else {
+        levels = D.bu_data[bu].joinedLevels || {};
+      }
+    } else if(type==='resigned'){
+      if(monthKey){
+        levels = getMonthlyLevels(D.bu_data[bu].resignedMonthlyLevels, monthKey) || {};
+      } else {
+        levels = D.bu_data[bu].resignedLevels || {};
+      }
+    } else if(type==='staff'){
+      levels = D.bu_data[bu].staffLevels || {};
+    } else {
+      levels = D.bu_data[bu].levels || {};
+    }
+    total = Object.values(levels).reduce(function(a,b){return a+b},0);
+  } else {
+    levels = {}; total = 0;
+  }
+  var titleText = bu + ' ' + (month?monthLabel:'') + '层级' + typeLabel + '明细（合计：' + total.toLocaleString() + ' 人）';
+  if(extraInfo) titleText += ' | ' + extraInfo;
+  document.getElementById('level-modal-title').textContent = titleText;
+  // Build table rows in level order + any extras
+  var seen = {};
+  var rows = '';
+  LEVEL_RANK.forEach(function(lvl){
+    if(levels[lvl] !== undefined){
+      var cnt = levels[lvl];
+      var pct = total>0 ? Math.round(cnt/total*1000)/10 : 0;
+      rows += '<tr><td>'+lvl+'</td><td>'+cnt.toLocaleString()+'</td><td>'+pct+'%</td><td><div class="lev-bar"><div class="lev-bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
+      seen[lvl] = true;
+    }
+  });
+  // Any remaining levels not in LEVEL_RANK
+  for(var k in levels){
+    if(!seen[k]){
+      var cnt = levels[k];
+      var pct = total>0 ? Math.round(cnt/total*1000)/10 : 0;
+      rows += '<tr><td>'+k+'</td><td>'+cnt.toLocaleString()+'</td><td>'+pct+'%</td><td><div class="lev-bar"><div class="lev-bar-fill" style="width:'+pct+'%"></div></div></td></tr>';
+    }
+  }
+  var countLabel = type==='joined'?'入职人数':(type==='resigned'?'离职人数':(type==='staff'?'编制人数':'在职人数'));
+  document.getElementById('level-modal-body').innerHTML =
+    '<table class="level-table2"><thead><tr><th>层级</th><th>'+countLabel+'</th><th>占比</th><th>分布</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  var ov = document.getElementById('level-overlay');
+  ov.style.display = 'flex';
+  ov.classList.add('show');
+}
+function closeLevelModal(){
+  var ov = document.getElementById('level-overlay');
+  ov.style.display = 'none';
+  ov.classList.remove('show');
+}
+function sortHealthTable(colKey){
+  if(healthSortCol === colKey){ healthSortAsc = !healthSortAsc; }
+  else { healthSortCol = colKey; healthSortAsc = true; }
+  renderHealthTable();
+}
+
+// Helpers
+function fillClass(v){return v>=80?'fill-high':v>=60?'fill-mid':'fill-low'}
+function fillTag(v){return v>=80?'good':v>=60?'warn':'bad'}
+function fillTagText(v){return v>=80?'健康':v>=60?'关注':'预警'}
+function fillDot(v){return v>=80?'green':v>=60?'yellow':'red'}
+function rateClass(v){return v<=10?'rate-high':v<=18?'rate-mid':'rate-low'}
+function rateTag(v){return v<=10?'good':v<=18?'warn':'bad'}
+function rateTagText(v){return v<=10?'低风险':v<=18?'关注':'高风险'}
+
+// Month filters
+var currentGlobalMonth = 'all';
+var currentJoinMonth = 'all';
+var currentResignMonth = 'all';
+var currentActiveMonth = 'all';
+var currentFillMonth = 'all';
+
+function filterGlobalMonth(m,btn){
+  currentGlobalMonth = m;
+  document.querySelectorAll('#global-filter-bar .g-month-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  
+  // Sync all four sections
+  // 在职: sync month, 累计→累计
+  var activeM = m==='all'?'all':m;
+  var activeBtn = document.querySelector('#active-month-filter .month-btn[data-month="'+activeM+'"]');
+  if(activeBtn) filterActiveMonth(activeM, activeBtn);
+  
+  // 入职: sync month, 累计→累计
+  var joinM = m==='all'?'all':m;
+  var joinBtn = document.querySelector('#join-month-filter .month-btn[data-month="'+joinM+'"]');
+  if(joinBtn) filterJoinMonth(joinM, joinBtn);
+  
+  // 离职: sync month, 累计→累计
+  var resignM = m==='all'?'all':m;
+  var resignBtn = document.querySelector('#resign-month-filter .month-btn[data-month="'+resignM+'"]');
+  if(resignBtn) filterResignMonth(resignM, resignBtn);
+  
+  // 满编率: 累计→6月, 其他→对应月份
+  var fillM = m==='all'?'all':m;
+  var fillBtn = document.querySelector('#fill-month-filter .month-btn[data-month="'+fillM+'"]');
+  if(fillBtn) filterFillMonth(fillM, fillBtn);
+}
+function filterActiveMonth(m,btn){
+  currentActiveMonth = m;
+  document.querySelectorAll('#active-month-filter .month-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderActiveRow();
+  renderBuActiveChart();
+  // Update note text
+  var noteEl = document.getElementById('active-note');
+  if(noteEl){
+    if(m==='all'){
+      noteEl.textContent = '累计净增 = 当前在职人数相较2026年年初的净增长。';
+    } else if(m==='01'){
+      noteEl.textContent = '';
+    } else {
+      noteEl.textContent = '当月净增 = 该月月初在职人数相较上月月初的环比变化量。';
+    }
+  }
+}
+function filterJoinMonth(m,btn){
+  currentJoinMonth = m;
+  document.querySelectorAll('#join-month-filter .month-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderJoinRow();
+  renderJoinMonthlyChart();
+}
+function filterResignMonth(m,btn){
+  currentResignMonth = m;
+  document.querySelectorAll('#resign-month-filter .month-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderResignRow();
+  renderActivePassiveChart();
+}
+function filterFillMonth(m,btn){
+  currentFillMonth = m;
+  document.querySelectorAll('#fill-month-filter .month-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderFillRow();
+  renderBuStaffChart();
+}
+
+// Card row renderers
+function renderActiveRow(){
+  var html = '';
+  var monthIdx = currentActiveMonth==='all'?5:parseInt(currentActiveMonth)-1;
+  var isCumulative = currentActiveMonth==='all';
+  var monthLabel = isCumulative?'累计':'当月';
+  BU_ORDER.forEach(function(bu){
+    var d=D.bu_data[bu];
+    var vals = D.monthly_active[bu] || [];
+    var cur, ng;
+    if(isCumulative){
+      // 累计模式：显示期末在职人数（active），净增 = 期末 - 1月初
+      cur = d.active || 0;
+      ng = cur - (vals[0]||0);
+    } else if(monthIdx === 0){
+      // 1月：当月净增为0
+      cur = vals[monthIdx]||0;
+      ng = 0;
+    } else {
+      // 其他月份：相较于上月净增
+      cur = vals[monthIdx]||0;
+      ng = cur - (vals[monthIdx-1]||0);
+    }
+    var cls = ng>50?'green-card':ng>=0?'blue-card':'red-card';
+    var ngSign = ng>0?'+':(ng<0?'':'');
+    var ngText = ng===0?'0':(ngSign+ng);
+    // 累计模式下BU卡片可点击穿透层级明细；单月模式下不可点击
+    var clickClass = isCumulative?' clickable':'';
+    var clickAttr = isCumulative?' onclick="showLevelDetail(\x27'+bu+'\x27)"':'';
+    var hoverHint = isCumulative?'<div class="hover-hint">点击查看层级明细</div>':'';
+    var ngLine = (isCumulative || monthIdx > 0)
+      ? ('<div class="small-info">'+monthLabel+'净增 <span class="'+(ng>=0?'text-green':'num-red')+'">'+ngText+'</span></div>')
+      : '';
+    html+='<div class="ov-card'+clickClass+' '+cls+'"'+clickAttr+'>'+hoverHint+'<div class="bu-name">'+bu+'</div><div class="big-num">'+(cur||0).toLocaleString()+'</div>'+ngLine+'</div>';
+  });
+  var tVals = D.monthly_active_total || [];
+  var tCur, tNg;
+  if(isCumulative){
+    // 累计模式：集团期末 = 各BU active之和
+    tCur = BU_ORDER.reduce(function(s,bu){return s+(D.bu_data[bu].active||0)},0);
+    tNg = tCur - (tVals[0]||0);
+  } else if(monthIdx === 0){
+    tCur = tVals[monthIdx]||0;
+    tNg = 0;
+  } else {
+    tCur = tVals[monthIdx]||0;
+    tNg = tCur - (tVals[monthIdx-1]||0);
+  }
+  var tNgText = tNg===0?'0':((tNg>0?'+':'')+tNg);
+  var tNgLine = (isCumulative || monthIdx > 0)
+    ? ('<div class="small-info">'+monthLabel+'净增 <span class="'+(tNg>=0?'text-green':'num-red')+'">'+tNgText+'</span></div>')
+    : '';
+  html+='<div class="ov-card gray-card'+(isCumulative?' clickable':'')+'" style="min-width:130px"'+(isCumulative?' onclick="showLevelDetail(\x27集团合计\x27)"':'')+'>'+(isCumulative?'<div class="hover-hint">点击查看层级明细</div>':'')+'<div class="bu-name">集团合计</div><div class="big-num">'+(tCur||0).toLocaleString()+'</div>'+tNgLine+'</div>';
+  document.getElementById('row-active').innerHTML=html;
+}
+
+function renderJoinRow(){
+  var html='';
+  BU_ORDER.forEach(function(bu){
+    var d=D.bu_data[bu];
+    var val,label;
+    if(currentJoinMonth==='all'){
+      val=d.joined;label='累计入职';
+    } else {
+      var mk='joined'+['Jan','Feb','Mar','Apr','May','Jun'][parseInt(currentJoinMonth)-1];
+      val=d[mk]||0;label=parseInt(currentJoinMonth)+'月入职';
+    }
+    var jClickClass = ' clickable';
+    var jClickAttr = ' onclick="showLevelDetail(\x27'+bu+'\x27,\x27joined\x27'+(currentJoinMonth!=='all'?',\x27'+currentJoinMonth+'\x27':'')+')"';
+    var jHoverHint = '<div class="hover-hint">点击查看层级明细</div>';
+    html+='<div class="ov-card blue-card'+jClickClass+'"'+jClickAttr+'>'+jHoverHint+'<div class="bu-name">'+bu+'</div><div class="big-num">'+val.toLocaleString()+'</div><div class="small-info">'+label+'</div></div>';
+  });
+  var tJoin = MONTHS.reduce(function(s,m){return s+(D.monthly_join_total[m]||0)},0);
+  var joinVal = currentJoinMonth==='all' ? tJoin : (D.monthly_join_total['2026-'+currentJoinMonth]||0);
+  html+='<div class="ov-card gray-card clickable" style="min-width:130px" onclick="showLevelDetail(\x27集团合计\x27,\x27joined\x27'+(currentJoinMonth!=='all'?',\x27'+currentJoinMonth+'\x27':'')+')"><div class="hover-hint">点击查看层级明细</div><div class="bu-name">集团合计</div><div class="big-num">'+joinVal.toLocaleString()+'</div><div class="small-info">'+(currentJoinMonth==='all'?'累计入职':parseInt(currentJoinMonth)+'月入职')+'</div></div>';
+  document.getElementById('row-join').innerHTML=html;
+}
+
+function renderResignRow(){
+  var html='';
+  BU_ORDER.forEach(function(bu){
+    var d=D.bu_data[bu];
+    var val,label;
+    if(currentResignMonth==='all'){
+      val=d.resigned;label='离职率 '+d.resignRate+'%';
+    } else {
+      var mk='resigned'+['Jan','Feb','Mar','Apr','May','Jun'][parseInt(currentResignMonth)-1];
+      val=d[mk]||0;label=parseInt(currentResignMonth)+'月离职';
+    }
+    var cls = (d.resignRate||0)>18?'red-card':(d.resignRate||0)>12?'orange-card':'blue-card';
+    var rClickClass = ' clickable';
+    var rClickAttr = ' onclick="showLevelDetail(\x27'+bu+'\x27,\x27resigned\x27'+(currentResignMonth!=='all'?',\x27'+currentResignMonth+'\x27':'')+')"';
+    var rHoverHint = '<div class="hover-hint">点击查看层级明细</div>';
+    html+='<div class="ov-card '+cls+rClickClass+'"'+rClickAttr+'>'+rHoverHint+'<div class="bu-name">'+bu+'</div><div class="big-num">'+val.toLocaleString()+'</div><div class="small-info">'+label+'</div></div>';
+  });
+  var tResign = MONTHS.reduce(function(s,m){return s+(D.monthly_resign_total[m]||0)},0);
+  var resignVal = currentResignMonth==='all' ? tResign : (D.monthly_resign_total['2026-'+currentResignMonth]||0);
+  var resignLabel = currentResignMonth==='all' ? '离职率 '+T.resignRate+'%' : parseInt(currentResignMonth)+'月离职';
+  html+='<div class="ov-card gray-card clickable" style="min-width:130px" onclick="showLevelDetail(\x27集团合计\x27,\x27resigned\x27'+(currentResignMonth!=='all'?',\x27'+currentResignMonth+'\x27':'')+')"><div class="hover-hint">点击查看层级明细</div><div class="bu-name">集团合计</div><div class="big-num">'+resignVal.toLocaleString()+'</div><div class="small-info">'+resignLabel+'</div></div>';
+  document.getElementById('row-resign').innerHTML=html;
+}
+
+function renderFillRow(){
+  var html='';
+  var mSuffix = currentFillMonth==='all'?'':'_'+['jan','feb','mar','apr','may'][parseInt(currentFillMonth)-1];
+  var showRate = currentFillMonth==='all'?'fillRate':'fillRate'+mSuffix;
+  BU_ORDER.forEach(function(bu){
+    var d=D.bu_data[bu];
+    var stf = currentFillMonth==='all'?d.staff:d['staff'+mSuffix]||0;
+    var fld = currentFillMonth==='all'?d.filled:d['filled'+mSuffix]||0;
+    var gap = stf - fld;
+    var fr = d[showRate]||0;
+    var cls = fr>=80?'green-card':fr>=60?'orange-card':'red-card';
+    var fClickClass = currentFillMonth==='all'?' clickable':'';
+    var fClickAttr = currentFillMonth==='all'?' onclick="showLevelDetail(\x27'+bu+'\x27,\x27staff\x27)"':'';
+    var fHoverHint = currentFillMonth==='all'?'<div class="hover-hint">点击查看层级明细</div>':'';
+    html+='<div class="ov-card '+cls+fClickClass+'"'+fClickAttr+'>'+fHoverHint+'<div class="bu-name">'+bu+'</div><div class="big-num">'+fr+'%</div><div class="small-info">编制 '+stf.toLocaleString()+'<br>空编 <span class="num-red">'+gap+'</span></div></div>';
+  });
+  var stfT = currentFillMonth==='all'?T.staff:(T['staff'+mSuffix]||0);
+  var fldT = currentFillMonth==='all'?T.filled:(T['filled'+mSuffix]||0);
+  var gapT = stfT - fldT;
+  var frT = currentFillMonth==='all'?T.fillRate:(T['fillRate'+mSuffix]||0);
+  html+='<div class="ov-card gray-card'+(currentFillMonth==='all'?' clickable':'')+'" style="min-width:130px"'+(currentFillMonth==='all'?' onclick="showLevelDetail(\x27集团合计\x27,\x27staff\x27)"':'')+'>'+(currentFillMonth==='all'?'<div class="hover-hint">点击查看层级明细</div>':'')+'<div class="bu-name">集团</div><div class="big-num">'+frT+'%</div><div class="small-info">编制 '+stfT.toLocaleString()+'<br>空编 <span class="num-red">'+gapT.toLocaleString()+'</span></div></div>';
+  document.getElementById('row-fill').innerHTML=html;
+}
+
+function renderJoinMonthlyChart(){
+  var ctx = document.getElementById('chart-join-monthly');
+  if(ctx._chart){ctx._chart.destroy()}
+  if(currentJoinMonth==='all'){
+    // 累计: X轴=BU, 每列堆叠1-6月 + 留存率折线(右轴)
+    var barDatasets = MONTH_SHORT.map(function(ms,i){
+      var key = 'joined'+['Jan','Feb','Mar','Apr','May','Jun'][i];
+      return {label:parseInt(ms)+'月',data:BU_ORDER.map(function(bu){return D.bu_data[bu][key]||0}),backgroundColor:BU_PALETTE[i],borderRadius:2,datalabels:{display:false}};
+    });
+    var retentionData = BU_ORDER.map(function(bu){return D.bu_data[bu].newRetentionRate||0});
+    ctx._chart = new Chart(ctx,{
+      type:'bar',
+      data:{labels:BU_ORDER,datasets:barDatasets.concat([{label:'留存率',type:'line',data:retentionData,yAxisID:'y1',borderColor:'#ee7623',backgroundColor:'transparent',pointBackgroundColor:'#ee7623',pointRadius:4,pointHoverRadius:6,borderWidth:2.5,tension:0.3,fill:false,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:9},color:'#ee7623',formatter:function(v){return v>0?v+'%':''}}},{label:'集团留存率',type:'line',data:BU_ORDER.map(function(){return T.newRetentionRate||0}),yAxisID:'y1',borderColor:'#ee7623',borderDash:[6,4],backgroundColor:'transparent',pointRadius:0,borderWidth:2,datalabels:{display:false}}])},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{usePointStyle:true,padding:8,font:{size:9},boxWidth:8,filter:function(item){return item.text!=='集团留存率'}}},
+          tooltip:{callbacks:{
+            label:function(ctx){if(ctx.dataset.label.indexOf('留存率')>=0){return ctx.dataset.label+': '+ctx.raw+'%'}return ctx.dataset.label+': '+ctx.raw+' 人'},
+            footer:function(items){var total=items.filter(function(i){return i.dataset.label.indexOf('留存率')===-1}).reduce(function(s,i){return s+i.raw},0);return '合计: '+total+' 人'}
+          }}
+        },
+        scales:{
+          x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},
+          y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{font:{size:10}}},
+          y1:{position:'right',beginAtZero:false,min:0,max:100,grid:{display:false},ticks:{font:{size:9},callback:function(v){return v+'%'}}}
+        }
+      }
+    });
+  } else {
+    // 选中月份: X轴=BU, 单薄柱形
+    var mIdx = parseInt(currentJoinMonth)-1;
+    var key = 'joined'+['Jan','Feb','Mar','Apr','May','Jun'][mIdx];
+    var vals = BU_ORDER.map(function(bu){return D.bu_data[bu][key]||0});
+    ctx._chart = new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:BU_ORDER,
+        datasets:[{
+          label:currentJoinMonth+'月入职',data:vals,backgroundColor:'rgba(5,150,105,0.75)',borderRadius:4,
+          datalabels:{anchor:'end',align:'top',font:{weight:'700',size:10},color:'#047857',formatter:function(v){return v>0?v:''}}
+        }]
+      },
+      options:Object.assign({},baseOpts(),{plugins:{legend:{display:false}},layout:{padding:{top:16}}})
+    });
+  }
+}
+
+// Shared chart defaults
+function baseOpts(yGrid=true){
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:14,font:{size:11}}}},
+    scales:{
+      y:{beginAtZero:yGrid,grid:yGrid?{color:'#f1f5f9'}:{display:false},ticks:{font:{size:10}}},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  };
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+(function initAll(){
+  // Fill stats strip
+  var domActive = ['LBU','FBU','ABU','PBU','HQU_HRAS','HQU_FES','HQU_技术部','HQU_其他'].reduce(function(s,bu){return s+(D.bu_data[bu]?D.bu_data[bu].active:0)},0);
+  var ovsActive = ['GEU','GUS'].reduce(function(s,bu){return s+(D.bu_data[bu]?D.bu_data[bu].active:0)},0);
+  var gap = T.staff - T.filled;
+  document.getElementById('ss-active').textContent = T.active.toLocaleString();
+  document.getElementById('ss-active-sub').textContent = '国内 '+domActive.toLocaleString()+' · 海外 '+ovsActive.toLocaleString();
+  document.getElementById('ss-fillrate').textContent = T.fillRate+'%';
+  document.getElementById('ss-fillrate-sub').textContent = '编制 '+T.staff.toLocaleString()+' · 空编 '+gap.toLocaleString();
+  document.getElementById('ss-netgrowth').textContent = (T.netGrowth>0?'+':'')+T.netGrowth.toLocaleString();
+  document.getElementById('ss-netgrowth-sub').textContent = '年初至今累计净增';
+  document.getElementById('ss-joined').textContent = T.joined.toLocaleString();
+  document.getElementById('ss-joined-sub').textContent = '月均 '+Math.round(T.joined/6)+' 人入职';
+  document.getElementById('ss-resigned').textContent = T.resigned.toLocaleString();
+  document.getElementById('ss-resigned-sub').textContent = '主动 '+T.activeResign.toLocaleString()+' · 被动 '+T.passiveResign.toLocaleString();
+  document.getElementById('ss-resignrate').textContent = T.resignRate+'%';
+  document.getElementById('ss-resignrate-sub').textContent = '需持续关注';
+
+  // Section 1 — 在职
+  renderActiveRow();
+  renderBuActiveChart();
+  // Init note
+  var noteEl = document.getElementById('active-note');
+  if(noteEl) noteEl.textContent = '累计净增 = 当前在职人数相较2026年年初的净增长。';
+  renderBuSeniorityChart();
+
+  // Section 2 — 入职
+  renderJoinRow();
+  renderJoinMonthlyChart();
+
+  // Section 3 — 离职
+  renderResignRow();
+  renderFlowChart();
+  renderActivePassiveChart();
+  renderBuResignRateChart();
+
+  // Section 4 — 满编率
+  renderFillRow();
+  renderBuStaffChart();
+  renderLevelFillChart();
+
+  // Section 5 — 高层变动
+  renderHighLevel();
+
+  // BU对比明细
+  renderHealthTable();
+})();
+
+/* ================================================================
+   BU HEALTH TABLE
+   ================================================================ */
+function renderHealthTable(){
+  var sorted = BU_ORDER.slice();
+  if(healthSortCol){
+    sorted.sort(function(a,b){
+      var da = D.bu_data[a], db = D.bu_data[b];
+      var va, vb;
+      if(healthSortCol==='bu'){ va=a; vb=b; }
+      else if(healthSortCol==='gap'){ va=da.staff-da.filled; vb=db.staff-db.filled; }
+      else { va=da[healthSortCol]; vb=db[healthSortCol]; }
+      if(typeof va==='string') return healthSortAsc? va.localeCompare(vb):vb.localeCompare(va);
+      return healthSortAsc? va-vb : vb-va;
+    });
+  }
+  function thArrow(key, label){
+    var arrow = '';
+    if(healthSortCol===key) arrow = healthSortAsc ? ' ↑':' ↓';
+    return '<th onclick="sortHealthTable(\''+key+'\')" style="cursor:pointer" title="点击排序">'+label+arrow+'</th>';
+  }
+  var rows = sorted.map(function(bu){
+    var d = D.bu_data[bu];
+    var gap = d.staff - d.filled;
+    return '<tr>'+
+      '<td><span class="dot '+fillDot(d.fillRate)+'"></span>'+bu+'</td>'+
+      '<td>'+d.active.toLocaleString()+'</td>'+
+      '<td>'+d.staff.toLocaleString()+'</td>'+
+      '<td class="'+fillClass(d.fillRate)+'">'+d.fillRate+'%</td>'+
+      '<td><span class="tag '+fillTag(d.fillRate)+'">'+fillTagText(d.fillRate)+'</span></td>'+
+      '<td style="color:#dc2626">'+gap.toLocaleString()+'</td>'+
+      '<td>'+d.joined.toLocaleString()+'</td>'+
+      '<td style="color:#dc2626">'+d.resigned.toLocaleString()+'</td>'+
+      '<td class="'+rateClass(d.resignRate)+'">'+d.resignRate+'%</td>'+
+      '<td><span class="tag '+rateTag(d.resignRate)+'">'+rateTagText(d.resignRate)+'</span></td>'+
+      '<td class="'+(d.netGrowth>=0?'fill-high':'neg')+'">'+(d.netGrowth>=0?'+':'')+d.netGrowth.toLocaleString()+'</td>'+
+      '<td>'+d.newRetentionRate+'%</td>'+
+    '</tr>';
+  }).join('');
+  var totGap = T.staff - T.filled;
+  var totalRow = '<tr style="background:#f8fafc;font-weight:800">'+
+    '<td style="color:#0e1d49">集团合计</td>'+
+    '<td>'+T.active.toLocaleString()+'</td>'+
+    '<td>'+T.staff.toLocaleString()+'</td>'+
+    '<td class="'+fillClass(T.fillRate)+'">'+T.fillRate+'%</td>'+
+    '<td><span class="tag '+fillTag(T.fillRate)+'">'+fillTagText(T.fillRate)+'</span></td>'+
+    '<td style="color:#dc2626">'+totGap.toLocaleString()+'</td>'+
+    '<td>'+T.joined.toLocaleString()+'</td>'+
+    '<td style="color:#dc2626">'+T.resigned.toLocaleString()+'</td>'+
+    '<td class="'+rateClass(T.resignRate)+'">'+T.resignRate+'%</td>'+
+    '<td><span class="tag '+rateTag(T.resignRate)+'">'+rateTagText(T.resignRate)+'</span></td>'+
+    '<td class="fill-high">+'+T.netGrowth.toLocaleString()+'</td>'+
+    '<td>'+T.newRetentionRate+'%</td></tr>';
+  document.getElementById('health-table-wrap').innerHTML =
+    '<table class="health-table"><thead><tr>'+
+      thArrow('bu','BU')+
+      thArrow('active','在职')+
+      thArrow('staff','编制')+
+      thArrow('fillRate','满编率')+
+      '<th>状态</th>'+
+      thArrow('gap','空编')+
+      thArrow('joined','累计入职')+
+      thArrow('resigned','累计离职')+
+      thArrow('resignRate','离职率')+
+      '<th>风险</th>'+
+      thArrow('netGrowth','净增')+
+      thArrow('newRetentionRate','留存率')+
+    '</tr></thead><tbody>'+rows+totalRow+'</tbody></table>';
+}
+
+/* ================================================================
+   4. 各BU编制与在职对比 (grouped bar)
+   ================================================================ */
+function renderBuStaffChart(){
+  var ctx = document.getElementById('chart-bu-staff');
+  if(ctx._chart) ctx._chart.destroy();
+  var mSuffix = currentFillMonth==='all'?'':'_'+['jan','feb','mar','apr','may'][parseInt(currentFillMonth)-1];
+  var monthLabel = currentFillMonth==='all'?'6月':parseInt(currentFillMonth)+'月';
+  ctx._chart = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:BU_ORDER,
+      datasets:[
+        {label:'编制 ('+monthLabel+')',data:BU_ORDER.map(function(bu){return currentFillMonth==='all'?D.bu_data[bu].staff:D.bu_data[bu]['staff'+mSuffix]||0}),backgroundColor:'rgba(63,89,154,0.75)',borderRadius:3,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:11},color:'#1e293b',backgroundColor:'rgba(255,255,255,0.6)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},formatter:function(v){return v>0?v:''}}},
+        {label:'占编在职 ('+monthLabel+')',data:BU_ORDER.map(function(bu){return currentFillMonth==='all'?D.bu_data[bu].filled:D.bu_data[bu]['filled'+mSuffix]||0}),backgroundColor:'rgba(5,150,105,0.75)',borderRadius:3,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:11},color:'#047857',backgroundColor:'rgba(255,255,255,0.6)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},formatter:function(v){return v>0?v:''}}},
+        {label:'在职 ('+monthLabel+')',data:BU_ORDER.map(function(bu){return D.bu_data[bu].active}),backgroundColor:'rgba(238,118,35,0.75)',borderRadius:3,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:11},color:'#c2410c',backgroundColor:'rgba(255,255,255,0.6)',borderRadius:3,padding:{top:1,bottom:1,left:3,right:3},formatter:function(v){return v>0?v:''}}}
+      ]
+    },
+    options:(function(){var o=baseOpts();o.layout={padding:{top:18}};o.plugins.datalabels={clip:false};return o;})()
+  });
+}
+
+/* ================================================================
+   5. 各BU司龄分布占比 (100% stacked bar)
+   ================================================================ */
+function renderBuSeniorityChart(){
+  var pctData = BU_ORDER.map(function(bu){
+    var under1 = D.bu_data[bu].seniorityUnder1 || 0;
+    var over1 = D.bu_data[bu].seniorityOver1 || 0;
+    var total = under1 + over1;
+    if(total === 0) return {under1:0, over1:0};
+    return {under1:Math.round(under1/total*1000)/10, over1:Math.round(over1/total*1000)/10};
+  });
+  new Chart(document.getElementById('chart-bu-seniority'),{
+    type:'bar',
+    data:{
+      labels:BU_ORDER,
+      datasets:[
+        {label:'司龄1年以内',data:pctData.map(function(d){return d.under1}),backgroundColor:'rgba(238,118,35,0.85)',borderRadius:3,datalabels:{anchor:'center',color:'#fff',font:{weight:'700',size:10},formatter:function(v){return v>0?v+'%':''}}},
+        {label:'司龄1年以上',data:pctData.map(function(d){return d.over1}),backgroundColor:'rgba(63,89,154,0.8)',borderRadius:3,datalabels:{anchor:'center',color:'#fff',font:{weight:'700',size:10},formatter:function(v){return v>0?v+'%':''}}}
+      ]
+    },
+    options:(function(){
+      var o = baseOpts();
+      o.plugins.legend = {position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:9},boxWidth:8}};
+      o.plugins.tooltip = {callbacks:{label:function(ctx){
+        var label = ctx.dataset.label;
+        var bu = BU_ORDER[ctx.dataIndex];
+        var key = ctx.datasetIndex===0 ? 'seniorityUnder1' : 'seniorityOver1';
+        var num = D.bu_data[bu]? (D.bu_data[bu][key]||0) : 0;
+        return label+'：'+num+' 人 ('+ctx.raw+'%)';
+      }}};
+      o.scales = {x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{font:{size:10},callback:function(v){return v+'%'}},max:100}};
+      return o;
+    })()
+  });
+}
+
+/* ================================================================
+   6. 各BU月度在职人数 (bar chart, 月度筛选)
+   ================================================================ */
+function renderBuActiveChart(){
+  var ctx = document.getElementById('chart-bu-active');
+  if(ctx._chart) ctx._chart.destroy();
+  var monthIdx = currentActiveMonth==='all'?5:parseInt(currentActiveMonth)-1;
+  var monthLabel = currentActiveMonth==='all'?'6月（期末）':MONTH_SHORT[monthIdx]+'月';
+  var labels = BU_ORDER;
+  var datasets = [];
+  if(currentActiveMonth==='all'){
+    // 累计模式：X轴=BU, 每列堆叠1-6月
+    datasets = MONTH_SHORT.map(function(ms,i){
+      return {label:parseInt(ms)+'月初',data:BU_ORDER.map(function(bu){return D.monthly_active[bu] ? D.monthly_active[bu][i] : 0}),backgroundColor:BU_PALETTE[i],borderRadius:2,datalabels:{display:false}};
+    });
+  } else {
+    // 单月模式：X轴=BU, Y轴=选中月在职人数
+    datasets = [{label:monthLabel+'在职人数',data:BU_ORDER.map(function(bu){return D.monthly_active[bu] ? D.monthly_active[bu][monthIdx] : 0}),backgroundColor:BU_PALETTE.map(function(c){return c+'CC'}),borderColor:BU_PALETTE,borderWidth:1.5,borderRadius:4,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:10},color:'#1e293b',formatter:function(v){return v>0?v:''}}}];
+  }
+  ctx._chart = new Chart(ctx,{
+    type:'bar',
+    data:{labels:labels,datasets:datasets},
+    options:(function(){
+      var o = baseOpts(!1);
+      o.plugins.legend = {position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:9},boxWidth:8}};
+      o.plugins.tooltip = {usePointStyle:true,boxPadding:4,boxWidth:8,boxHeight:8,callbacks:{
+        footer:currentActiveMonth==='all'?function(items){var bu=items[0].label;var vals=D.monthly_active[bu]||[];var active=D.bu_data[bu]?D.bu_data[bu].active:0;var ng=active-(vals[0]||0);var monthLabels=['1月','2月','3月','4月','5月','6月'];var lines=[];for(var i=0;i<vals.length;i++){lines.push(monthLabels[i]+'在职: '+vals[i]+' 人')};lines.push('累计净增: '+(ng>=0?'+':'')+ng+' 人');return lines}:undefined
+      }};
+      o.scales = {x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{font:{size:10}}}};
+      return o;
+    })()
+  });
+}
+
+/* ================================================================
+   7. 各BU离职率对比 (horizontal bar)
+   ================================================================ */
+function renderBuResignRateChart(){
+  var sorted = BU_ORDER.slice().sort(function(a,b){return (D.bu_data[b].resignRate||0)-(D.bu_data[a].resignRate||0)});
+  new Chart(document.getElementById('chart-bu-resign-rate'),{
+    type:'bar',
+    data:{
+      labels:sorted,
+      datasets:[{
+        data:sorted.map(function(bu){return D.bu_data[bu].resignRate}),
+        backgroundColor:sorted.map(function(bu){return (D.bu_data[bu].resignRate||0)>18?'rgba(220,38,38,0.8)':(D.bu_data[bu].resignRate||0)>12?'rgba(238,118,35,0.7)':'rgba(5,150,105,0.7)'}),
+        borderRadius:4,
+        datalabels:{anchor:'end',align:'right',font:{weight:'700',size:10},color:'#475569',formatter:function(v){return v+'%'}}
+      }]
+    },
+    options:Object.assign({},baseOpts(),{indexAxis:'y',plugins:{legend:{display:false},datalabels:{display:true}}})
+  });
+}
+
+/* ================================================================
+   8. 月度入离职走势 (bar + line)
+   ================================================================ */
+function renderFlowChart(){
+  var joinVals = MONTHS.map(function(m){return D.monthly_join_total[m]||0});
+  var resignVals = MONTHS.map(function(m){return D.monthly_resign_total[m]||0});
+  var netVals = joinVals.map(function(j,i){return j-resignVals[i]});
+  new Chart(document.getElementById('chart-flow'),{
+    type:'bar',
+    data:{
+      labels:MONTH_LABELS,
+      datasets:[
+        {type:'bar',label:'入职',data:joinVals,backgroundColor:'rgba(5,150,105,0.75)',borderRadius:4,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:10},color:'#047857',formatter:function(v){return v>0?v:''}}},
+        {type:'bar',label:'离职',data:resignVals,backgroundColor:'rgba(220,38,38,0.65)',borderRadius:4,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:10},color:'#991b1b',formatter:function(v){return v>0?v:''}}},
+        {type:'line',label:'净增',data:netVals,borderColor:'#3f589a',backgroundColor:'#3f589a',tension:0.3,pointRadius:6,pointBackgroundColor:'#3f589a',borderWidth:3,datalabels:{anchor:'center',align:'top',font:{weight:'800',size:11},color:'#1e3a8a',formatter:function(v){return (v>0?'+':'')+v},offset:10}}
+      ]
+    },
+    options:Object.assign({},baseOpts(),{plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:16}}}})
+  });
+}
+
+/* ================================================================
+   9. 主动/被动离职分布 (grouped bar, by BU)
+   ================================================================ */
+function renderActivePassiveChart(){
+  // 根据当前离职筛选月份读取数据
+  var chartTitle = '各BU主动/被动离职分布';
+  var pctData = BU_ORDER.map(function(bu){
+    var d = D.bu_data[bu];
+    var a, p;
+    if(currentResignMonth==='all'){
+      // 累计模式：用总计 activeResign/passiveResign
+      a = d.activeResign || 0;
+      p = d.passiveResign || 0;
+    } else {
+      // 月度模式：从 resignMonthlyActivePassive 读取
+      var mk = '2026-'+currentResignMonth;
+      var monthly = d.resignMonthlyActivePassive || {};
+      var md = monthly[mk] || {active:0, passive:0};
+      a = md.active || 0;
+      p = md.passive || 0;
+      chartTitle = '各BU '+parseInt(currentResignMonth)+'月主动/被动离职分布';
+    }
+    var total = a + p;
+    if(total === 0) return {active:0, passive:0};
+    return {active:Math.round(a/total*1000)/10, passive:Math.round(p/total*1000)/10};
+  });
+  var ctx = document.getElementById('chart-active-passive');
+  if(ctx._chart){ctx._chart.destroy()}
+  ctx._chart = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:BU_ORDER,
+      datasets:[
+        {label:'主动离职占比',data:pctData.map(function(d){return d.active}),backgroundColor:'rgba(238,118,35,0.85)',borderRadius:3,datalabels:{anchor:'center',color:'#fff',font:{weight:'700',size:10},formatter:function(v){return v>0?v+'%':''}}},
+        {label:'被动离职占比',data:pctData.map(function(d){return d.passive}),backgroundColor:'rgba(148,163,184,0.75)',borderRadius:3,datalabels:{anchor:'center',color:'#1e293b',font:{weight:'700',size:10},formatter:function(v){return v>0?v+'%':''}}}
+      ]
+    },
+    options:Object.assign({},baseOpts(),{
+      plugins:{
+        legend:{position:'bottom',labels:{usePointStyle:true,padding:10,font:{size:9},boxWidth:8}},
+        tooltip:{callbacks:{label:function(ctx){
+            var bu = BU_ORDER[ctx.dataIndex];
+            var d = D.bu_data[bu];
+            if(!d) return '';
+            var a, p;
+            if(currentResignMonth==='all'){
+              a = d.activeResign || 0;
+              p = d.passiveResign || 0;
+            } else {
+              var mk = '2026-'+currentResignMonth;
+              var monthly = d.resignMonthlyActivePassive || {};
+              var md = monthly[mk] || {active:0, passive:0};
+              a = md.active || 0;
+              p = md.passive || 0;
+            }
+            var label = ctx.datasetIndex===0 ? '主动离职' : '被动离职';
+            var num = ctx.datasetIndex===0 ? a : p;
+            return label+'：'+num+' 人';
+          }}}
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{font:{size:9}}},
+        y:{stacked:true,grid:{color:'#f1f5f9'},ticks:{font:{size:10},callback:function(v){return v+'%'}},max:100}
+      }
+    })
+  });
+}
+
+/* ================================================================
+   10. 集团月度净增趋势 (line)
+   ================================================================ */
+function renderNetGrowthChart(){
+  var netVals = MONTHS.map(function(m,i){return (D.monthly_join_total[m]||0)-(D.monthly_resign_total[m]||0)});
+  new Chart(document.getElementById('chart-net-growth'),{
+    type:'line',
+    data:{
+      labels:MONTH_LABELS,
+      datasets:[{
+        label:'月度净增',data:netVals,borderColor:'#3f589a',backgroundColor:'rgba(63,89,154,0.1)',tension:0.3,pointRadius:8,pointBackgroundColor:netVals.map(function(v){return v>=0?'#059669':'#dc2626'}),borderWidth:3,fill:true,
+        datalabels:{anchor:'end',align:'top',font:{weight:'800',size:12},color:'#1e3a8a',formatter:function(v){return (v>0?'+':'')+v},offset:20}
+      }]
+    },
+    options:Object.assign({},baseOpts(),{layout:{padding:{top:28}}})
+  });
+  var wrap = document.getElementById('chart-net-growth').parentElement;
+  if(!wrap.querySelector('.caliber-note')){
+    var note = document.createElement('div');
+    note.className = 'caliber-note';
+    note.style.cssText = 'font-size:11px;color:#64748b;margin-top:6px;line-height:1.5';
+    note.innerHTML = '口径说明：月度净增 = 当月入职人数 − 当月离职人数';
+    wrap.appendChild(note);
+  }
+}
+
+/* ================================================================
+   11. 各BU人才净增排行 (horizontal bar)
+   ================================================================ */
+function renderBuNetChart(){
+  var sorted = BU_ORDER.slice().sort(function(a,b){return (D.bu_data[b].netGrowth||0)-(D.bu_data[a].netGrowth||0)});
+  new Chart(document.getElementById('chart-bu-net'),{
+    type:'bar',
+    data:{
+      labels:sorted,
+      datasets:[{
+        data:sorted.map(function(bu){return D.bu_data[bu].netGrowth}),
+        backgroundColor:sorted.map(function(bu){return (D.bu_data[bu].netGrowth||0)>=0?'rgba(5,150,105,0.75)':'rgba(220,38,38,0.75)'}),
+        borderRadius:4,
+        datalabels:{anchor:'end',align:function(ctx){return ctx.dataset.data[ctx.dataIndex]>=0?'right':'left'},font:{weight:'700',size:10},color:'#475569',formatter:function(v){return (v>0?'+':'')+v}}
+      }]
+    },
+    options:Object.assign({},baseOpts(),{indexAxis:'y',plugins:{legend:{display:false}}})
+  });
+}
+
+/* ================================================================
+   12. 各层级满编率 & 在职人数 (双轴)
+   ================================================================ */
+function renderLevelFillChart(){
+  var ld = D.level_data;
+  new Chart(document.getElementById('chart-level-fill'),{
+    type:'bar',
+    data:{
+      labels:LEVEL_ORDER,
+      datasets:[
+        {label:'在职人数',data:LEVEL_ORDER.map(function(l){return ld[l].active}),backgroundColor:'rgba(63,89,154,0.75)',borderRadius:3,yAxisID:'y',datalabels:{display:false}},
+        {type:'line',label:'满编率 %',data:LEVEL_ORDER.map(function(l){return ld[l].fillRate}),borderColor:'#ee7623',backgroundColor:'#ee7623',borderWidth:3,pointRadius:6,pointBackgroundColor:'#ee7623',yAxisID:'y1',tension:0.3,
+          datalabels:{anchor:'end',align:'top',font:{weight:'800',size:11},color:'#ea580c',formatter:function(v){return v+'%'},offset:6}}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:14,font:{size:11}}}},
+      scales:{
+        y:{type:'linear',position:'left',beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{font:{size:10}},title:{display:true,text:'人数',font:{size:10}}},
+        y1:{type:'linear',position:'right',min:0,max:100,grid:{display:false},ticks:{font:{size:10},callback:function(v){return v+'%'}},title:{display:true,text:'满编率',font:{size:10}}},
+        x:{grid:{display:false},ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+/* ================================================================
+   13. 各层级离职分类 (grouped bar)
+   ================================================================ */
+function renderLevelResignChart(){
+  var ld = D.level_data;
+  new Chart(document.getElementById('chart-level-resign'),{
+    type:'bar',
+    data:{
+      labels:LEVEL_ORDER,
+      datasets:[
+        {label:'主动离职',data:LEVEL_ORDER.map(function(l){return ld[l].activeResign}),backgroundColor:'rgba(238,118,35,0.8)',borderRadius:3,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:10},color:'#92400e',formatter:function(v){return v>0?v:''}}},
+        {label:'被动离职',data:LEVEL_ORDER.map(function(l){return ld[l].passiveResign}),backgroundColor:'rgba(148,163,184,0.7)',borderRadius:3,datalabels:{anchor:'end',align:'top',font:{weight:'700',size:10},color:'#475569',formatter:function(v){return v>0?v:''}}}
+      ]
+    },
+    options:baseOpts()
+  });
+}
+
+/* ================================================================
+   14. 层级健康度表
+   ================================================================ */
+function renderLevelTable(){
+  var rows = LEVEL_ORDER.map(function(lvl){
+    var d = D.level_data[lvl];
+    var gap = d.staff - d.filled;
+    return '<tr>'+
+      '<td>'+d.name+'</td>'+
+      '<td>'+d.active+'</td><td>'+d.staff+'</td>'+
+      '<td><strong style="color:'+(d.fillRate>=80?'#059669':d.fillRate>=60?'#1e293b':'#dc2626')+'">'+d.fillRate+'%</strong></td>'+
+      '<td class="bar-cell"><div class="bar-bg"><div class="bar-fg '+(d.fillRate>=80?'good':d.fillRate>=60?'warn':'bad')+'" style="width:'+d.fillRate+'%"></div></div></td>'+
+      '<td style="color:#dc2626">'+gap+'</td>'+
+      '<td style="color:#dc2626">'+d.resigned+'</td>'+
+      '<td>'+d.activeResign+' / '+d.passiveResign+'</td>'+
+      '<td><strong style="color:'+(d.activeResign>d.passiveResign*1.5?'#dc2626':'#1e293b')+'">'+(d.activeResign>0?Math.round(d.activeResign/(d.activeResign+d.passiveResign||1)*100)+'%':'—')+'</strong></td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('level-table-wrap').innerHTML =
+    '<table class="level-table"><thead><tr><th>层级</th><th>在职</th><th>编制</th><th>满编率</th><th>占比</th><th>空编</th><th>累计离职</th><th>主动/被动</th><th>主动占比</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+/* ================================================================
+   15. 高层人员变动
+   ================================================================ */
+function renderHighLevel(){
+  var joins = D.high_level_joins||[];
+  var resigns = D.high_level_resignations||[];
+  var joinRows = joins.length>0
+    ? joins.map(function(r){return '<tr><td class="name-cell">'+r.name+'</td><td class="pos-cell">'+r.position+'</td><td class="pos-cell">'+r.dept2+'</td><td>'+r.grade+'</td><td>'+r.joinDate+'</td><td style="color:#059669;font-weight:600">'+r.status+'</td></tr>'}).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px">无高层入职记录</td></tr>';
+  var resignRows = resigns.length>0
+    ? resigns.map(function(r){return '<tr><td class="name-cell">'+r.name+'</td><td class="pos-cell">'+r.position+'</td><td class="pos-cell">'+r.dept2+'</td><td>'+r.grade+'</td><td>'+r.resignDate+'</td><td style="color:#dc2626;font-weight:600">'+r.resignReason+'</td></tr>'}).join('')
+    : '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:12px">无高层离职记录</td></tr>';
+  document.getElementById('high-level-wrap').innerHTML =
+    '<div class="chart-card"><h3>高层入职（'+joins.length+'人）</h3><table class="mini-table"><thead><tr><th>姓名</th><th>职位</th><th>部门</th><th>职级</th><th>入职日期</th><th>状态</th></tr></thead><tbody>'+joinRows+'</tbody></table></div>'+
+    '<div class="chart-card"><h3>高层离职（'+resigns.length+'人）</h3><table class="mini-table"><thead><tr><th>姓名</th><th>职位</th><th>部门</th><th>职级</th><th>离职日期</th><th>原因</th></tr></thead><tbody>'+resignRows+'</tbody></table></div>'+
+    '<div class="high-note">备注：金祥（zt28344）核算管理部 财务副总监（M3-3）入职后调动到体系外公司（绿康），不在入离职明细体现，不纳入离职数据统计</div>';
+}
+</script>
+<div id="level-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center" onclick="closeLevelModal()"><div id="level-modal" onclick="event.stopPropagation()" style="background:#fff;border-radius:14px;width:620px;max-width:92vw;max-height:82vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:24px 28px"><h3 id="level-modal-title" style="font-size:16px;font-weight:700;color:#0e1d49;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #e2e8f0"></h3><div id="level-modal-body"></div><button class="lev-close-btn" onclick="closeLevelModal()">关闭</button></div></div>
+</body>
+</html>
